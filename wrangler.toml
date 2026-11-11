@@ -9,5 +9,5 @@ enabled = true
 [vars]
 ENVIRONMENT = "production"
 API_VERSION = "1.0.0"
-MARKETPLACE_URL = "https://ponte.ozpro.com.br"
+MARKETPLACE_URL = "https://github.com/clepta2/boletovalidator-pro"
 DEFAULT_CACHE_TTL = "604800"

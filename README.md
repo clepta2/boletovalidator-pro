@@ -12,7 +12,7 @@
 
 ## ⚡ O que é o BoletoValidator Pro?
 
-O **BoletoValidator Pro** é uma solução de infraestrutura leve desenvolvida pela OZPro Enterprise para processamento, prevenção de fraudes e captura de boletos bancários e arrecadações em:
+O **BoletoValidator Pro** é uma solução de infraestrutura leve desenvolvida para processamento, prevenção de fraudes e captura de boletos bancários e arrecadações em:
 - **Sistemas de Contas a Pagar & ERPs**
 - **Plataformas de Conciliação Financeira**
 - **Checkouts de Pagamento & Cobranças**
@@ -275,10 +275,3 @@ async function processarPagamento({ linhaBoleto, documentoPagador }) {
   };
 }
 ```
-
----
-
-## 🔒 Marketplace de APIs & Ecossistema
-
-Este projeto faz parte do ecossistema de APIs de alta performance OZPro Enterprise:
-👉 **[Acessar Ponte API Marketplace](https://ponte.ozpro.com.br)**

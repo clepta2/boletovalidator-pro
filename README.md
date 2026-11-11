@@ -1,4 +1,4 @@
-# ?? BoletoValidator Pro ? SDK & Documenta??o de Integra??o
+﻿# ?? BoletoValidator Pro ? SDK & Documenta??o de Integra??o
 
 > **Cliente SDK e Documenta??o Oficial de Integra??o da API BoletoValidator Pro.**  
 > ?? **Aten??o:** Este reposit?rio destina-se exclusivamente ? visualiza??o de documenta??o t?cnica e integra??o do cliente SDK. O servi?o de API em nuvem ? operado atrav?s do nosso **Site de APIs (em breve)**. O acesso aos endpoints na borda requer obrigatoriamente uma **Chave de API (`x-api-key`)** ativa.
@@ -68,11 +68,11 @@ console.log(res);
 
 ```bash
 # Valida??o oficial (Requer x-api-key)
-curl -X GET "https://boletovalidator-pro-api.maputo3.workers.dev/api/validar-boleto?boleto=34191090080000028310109257470006496450000012500" \
+curl -X GET "https://ponte.ozpro.com.br/api/validar-boleto?boleto=34191090080000028310109257470006496450000012500" \
   -H "x-api-key: SUA_CHAVE_DO_PORTAL"
 
 # Gerador de Boleto Matem?tico para Testes e Homologa??o
-curl -X GET "https://boletovalidator-pro-api.maputo3.workers.dev/api/gerar?valor=489.90&banco=341&vencimento=2026-11-28" \
+curl -X GET "https://ponte.ozpro.com.br/api/gerar?valor=489.90&banco=341&vencimento=2026-11-28" \
   -H "x-api-key: SUA_CHAVE_DO_PORTAL"
 ```
 

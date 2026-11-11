@@ -235,6 +235,49 @@ console.log(boletos[0].valorFormatado); // 'R$ 125,00'
 
 ---
 
+## 🔗 Como Usar em Conjunto com as Outras APIs da Ponte
+
+As APIs da Ponte foram projetadas para se conectarem como blocos de montar (Lego) em pipelines de automação e compliance:
+
+### 🔄 Esteira Completa de Pagamento & Compliance (Boleto + CPF + CNPJ)
+Em sistemas de Contas a Pagar e ERPs, encadeie a validação do boleto com a verificação cadastral do pagador/beneficiário:
+
+```javascript
+import { BoletoValidatorPro } from 'boletovalidator-pro';
+import { CpfValidatorPro } from 'cpfvalidator-pro';
+import CnpjPro from 'cnpj-pro';
+
+async function processarPagamento({ linhaBoleto, documentoPagador }) {
+  // 1. Valida integridade matemática do boleto (FEBRABAN Módulo 10/11)
+  const boleto = BoletoValidatorPro.validarLocal(linhaBoleto);
+  if (!boleto.valido) throw new Error(`Boleto rejeitado: ${boleto.motivo}`);
+
+  // 2. Valida o documento do pagador
+  const docLimpo = documentoPagador.replace(/\D/g, '');
+  if (docLimpo.length === 11) {
+    // Pessoa Física -> CpfValidator Pro
+    const cpf = CpfValidatorPro.validarLocal(docLimpo);
+    if (!cpf.valido) throw new Error(`CPF do pagador inválido: ${cpf.motivo}`);
+  } else if (docLimpo.length === 14) {
+    // Pessoa Jurídica -> CNPJ Pro
+    const cnpj = new CnpjPro();
+    const dadosEmpresa = await cnpj.consultar(docLimpo);
+    if (dadosEmpresa.situacaoCadastral !== 'ATIVA') {
+      throw new Error(`Empresa pagadora inapta na Receita: ${dadosEmpresa.situacaoCadastral}`);
+    }
+  }
+
+  return {
+    status: 'APROVADO_PARA_PAGAMENTO',
+    banco: boleto.banco.nome,
+    valor: boleto.valorFormatado,
+    codigoBarras: boleto.codigoBarras
+  };
+}
+```
+
+---
+
 ## 🔒 Marketplace de APIs & Ecossistema
 
 Este projeto faz parte do ecossistema de APIs de alta performance OZPro Enterprise:

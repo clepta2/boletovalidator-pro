@@ -1,0 +1,18 @@
+# Dependências locais
+node_modules/
+.wrangler/
+dist/
+
+# Variáveis de ambiente secretas (NUNCA SUBIR NO GIT)
+.env
+.dev.vars
+*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Sistema Operacional
+.DS_Store
+Thumbs.db

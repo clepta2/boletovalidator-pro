@@ -1,0 +1,38 @@
+{
+  "name": "boletovalidator-pro",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "SDK e API Oficial de Validação, Conversão de Linha Digitável e Extração de Vencimento/Valor de Boletos Bancários e Concessionárias (FEBRABAN Módulo 10/11) na borda Cloudflare Edge (<5ms).",
+  "main": "boletovalidator-pro.js",
+  "module": "boletovalidator-pro.js",
+  "types": "types/index.d.ts",
+  "scripts": {
+    "test": "node test.js",
+    "deploy": "wrangler deploy"
+  },
+  "keywords": [
+    "boleto",
+    "boleto-bancario",
+    "linha-digitavel",
+    "codigo-de-barras",
+    "febraban",
+    "modulo-10",
+    "modulo-11",
+    "concessionarias",
+    "arrecadacao",
+    "cloudflare-worker",
+    "edge-computing",
+    "brasil",
+    "sdk"
+  ],
+  "author": "clepta2 <clepta2@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/clepta2/boletovalidator-pro.git"
+  },
+  "bugs": {
+    "url": "https://github.com/clepta2/boletovalidator-pro/issues"
+  },
+  "homepage": "https://github.com/clepta2/boletovalidator-pro#readme"
+}

@@ -17,20 +17,33 @@ const BANCOS_BRASIL = {
   '047': 'Banco do Estado de Sergipe S.A. (Banese)',
   '070': 'Banco de Brasília S.A. (BRB)',
   '077': 'Banco Inter S.A.',
+  '084': 'Uniprime do Brasil',
   '104': 'Caixa Econômica Federal',
+  '121': 'Banco Agibank S.A.',
   '197': 'Stone Pagamentos S.A.',
   '208': 'Banco BTG Pactual S.A.',
   '212': 'Banco Original S.A.',
   '218': 'Banco BS2 S.A.',
   '237': 'Banco Bradesco S.A.',
+  '246': 'Banco ABC Brasil S.A.',
   '260': 'Nu Pagamentos S.A. (Nubank)',
   '290': 'PagSeguro Internet S.A. (PagBank)',
+  '318': 'Banco BMG S.A.',
   '336': 'Banco C6 S.A.',
   '341': 'Itaú Unibanco S.A.',
+  '380': 'PicPay Instituição de Pagamento S.A.',
   '389': 'Banco Mercantil do Brasil S.A.',
+  '403': 'Banco Cora SCD S.A.',
   '422': 'Banco Safra S.A.',
+  '461': 'Asaas Gestão Financeira S.A.',
+  '633': 'Banco Rendimento S.A.',
+  '654': 'Banco Digimais S.A.',
   '655': 'Banco Votorantim S.A.',
+  '707': 'Banco Daycoval S.A.',
+  '745': 'Banco Citibank S.A.',
+  '746': 'Banco Modal S.A.',
   '748': 'Banco Cooperativo Sicredi S.A.',
+  '752': 'Banco BNP Paribas Brasil S.A.',
   '756': 'Banco Cooperativo do Brasil S.A. (Sicoob)'
 };
 
@@ -168,6 +181,106 @@ export class BoletoValidatorPro {
     return {
       iso: `${ano}-${mes}-${dia}`,
       formatada: `${dia}/${mes}/${ano}`
+    };
+  }
+
+  /**
+   * Decodifica o Campo Livre (25 posições) dos principais bancos brasileiros
+   * extraindo Agência, Conta Corrente, Carteira de Cobrança e Nosso Número
+   * @param {string} banco 
+   * @param {string} campoLivre 
+   * @returns {Object}
+   */
+  static decodificarCampoLivre(banco, campoLivre) {
+    if (!campoLivre || campoLivre.length !== 25) return null;
+
+    switch (banco) {
+      case '341': // Itaú
+        return {
+          layout: 'Itaú Unibanco',
+          carteira: campoLivre.slice(0, 3),
+          tipoCarteira: campoLivre.slice(0, 3) === '109' ? 'Cobrança Direta Eletrônica sem IOF' : 'Cobrança Registrada',
+          nossoNumero: `${campoLivre.slice(3, 11)}-${campoLivre.slice(11, 12)}`,
+          agencia: campoLivre.slice(12, 16),
+          contaCorrente: `${campoLivre.slice(16, 21)}-${campoLivre.slice(21, 22)}`
+        };
+      case '237': // Bradesco
+        return {
+          layout: 'Bradesco',
+          agencia: campoLivre.slice(0, 4),
+          carteira: campoLivre.slice(4, 6),
+          tipoCarteira: campoLivre.slice(4, 6) === '09' ? 'Cobrança Simples com Registro' : 'Cobrança Registrada',
+          nossoNumero: `${campoLivre.slice(6, 17)}-${campoLivre.slice(17, 18)}`,
+          contaCorrente: campoLivre.slice(18, 25)
+        };
+      case '001': // Banco do Brasil
+        return {
+          layout: 'Banco do Brasil',
+          convenio: campoLivre.slice(0, 7),
+          nossoNumero: campoLivre.slice(7, 24),
+          carteira: campoLivre.slice(24, 25)
+        };
+      case '033': // Santander
+        return {
+          layout: 'Santander',
+          codigoCedente: campoLivre.slice(3, 10),
+          nossoNumero: `${campoLivre.slice(10, 22)}-${campoLivre.slice(22, 23)}`,
+          carteira: campoLivre.slice(24, 25)
+        };
+      case '104': // Caixa Econômica Federal
+        return {
+          layout: 'Caixa Econômica Federal (SIGCB)',
+          codigoCedente: `${campoLivre.slice(0, 6)}-${campoLivre.slice(6, 7)}`,
+          nossoNumero: campoLivre.slice(7, 24),
+          modalidade: campoLivre.slice(7, 9) === '14' ? 'Cobrança Registrada Emissão Caixa' : 'Cobrança Registrada Beneficiário'
+        };
+      case '077': // Banco Inter
+        return {
+          layout: 'Banco Inter',
+          contaCorrente: campoLivre.slice(0, 10),
+          nossoNumero: campoLivre.slice(10, 21),
+          carteira: 'Cobrança Simples'
+        };
+      case '260': // Nubank
+        return {
+          layout: 'Nu Pagamentos (Nubank)',
+          nossoNumero: campoLivre.slice(0, 15),
+          carteira: 'Depósito / Cobrança Digital'
+        };
+      default:
+        return {
+          layout: 'Padrão FEBRABAN Genérico',
+          campoLivreRaw: campoLivre
+        };
+    }
+  }
+
+  /**
+   * Simula os encargos legais de atraso (Multa máx 2% CDC + Juros de mora 1% a.m. pro-rata die)
+   * @param {number} valorNominal 
+   * @param {number} diasAtraso 
+   * @param {number} [percentualMulta=2.0] 
+   * @param {number} [taxaJurosMes=1.0] 
+   * @returns {Object|null}
+   */
+  static simularEncargosAtraso(valorNominal, diasAtraso, percentualMulta = 2.0, taxaJurosMes = 1.0) {
+    if (!valorNominal || valorNominal <= 0 || !diasAtraso || diasAtraso <= 0) {
+      return null;
+    }
+    const multa = Number(((valorNominal * percentualMulta) / 100).toFixed(2));
+    const taxaDiaria = taxaJurosMes / 30 / 100;
+    const juros = Number((valorNominal * taxaDiaria * diasAtraso).toFixed(2));
+    const valorTotalAtualizado = Number((valorNominal + multa + juros).toFixed(2));
+
+    return {
+      diasAtraso,
+      percentualMulta: `${percentualMulta}%`,
+      valorMulta: multa,
+      taxaJurosMensal: `${taxaJurosMes}% a.m.`,
+      valorJurosMora: juros,
+      valorTotalAtualizado,
+      valorTotalFormatado: `R$ ${valorTotalAtualizado.toFixed(2).replace('.', ',')}`,
+      observacao: 'Simulação com base nos tetos padrão do Código de Defesa do Consumidor (Art. 52 §1º).'
     };
   }
 
@@ -392,11 +505,16 @@ export class BoletoValidatorPro {
       }
 
       const codigoBanco = limpo.slice(0, 3);
+      const campoLivre = codigoBarras.slice(19, 44);
+      const dadosBancarios = BoletoValidatorPro.decodificarCampoLivre(codigoBanco, campoLivre);
       const nomeBanco = BANCOS_BRASIL[codigoBanco] || 'Banco Não Catalogado / Outros';
       const vencimento = BoletoValidatorPro.fatorParaData(fatorVenc);
       const statusVencimento = vencimento ? BoletoValidatorPro.calcularStatusVencimento(vencimento.iso) : null;
       const valorCentavos = parseInt(valorStr, 10);
       const valorReais = valorCentavos > 0 ? (valorCentavos / 100) : null;
+      const simulacaoAtraso = (valorReais && statusVencimento && statusVencimento.estaVencido)
+        ? BoletoValidatorPro.simularEncargosAtraso(valorReais, statusVencimento.diasAtraso)
+        : null;
 
       return {
         valido: true,
@@ -409,9 +527,11 @@ export class BoletoValidatorPro {
           codigo: codigoBanco,
           nome: nomeBanco
         },
+        dadosBancarios: dadosBancarios,
         moeda: limpo.charAt(3) === '9' ? 'BRL (Real)' : 'Outra Moeda',
         vencimento: vencimento,
         statusVencimento: statusVencimento,
+        simulacaoAtraso: simulacaoAtraso,
         fatorVencimento: fatorVenc,
         valor: valorReais !== null ? valorReais : 0,
         valorFormatado: valorReais !== null ? `R$ ${valorReais.toFixed(2).replace('.', ',')}` : 'Sem valor nominal preenchido'
@@ -445,6 +565,7 @@ export class BoletoValidatorPro {
       const valorStr = codigoBarras.slice(4, 15);
       const valorCentavos = parseInt(valorStr, 10);
       const valorReais = valorCentavos > 0 ? (valorCentavos / 100) : 0;
+      const codEmpresa = codigoBarras.slice(15, 19);
 
       return {
         valido: true,
@@ -457,6 +578,12 @@ export class BoletoValidatorPro {
           codigo: idSegmento,
           descricao: nomeSegmento
         },
+        identificacaoValor: {
+          codigo: idMoeda,
+          tipoCalculo: usaModulo10 ? 'Módulo 10' : 'Módulo 11',
+          descricao: (idMoeda === 6 || idMoeda === 8) ? 'Valor Efetivo em Reais (BRL)' : 'Quantidade de Moeda Variável'
+        },
+        empresaOuOrgaoConveniado: codEmpresa,
         valor: valorReais,
         valorFormatado: valorReais > 0 ? `R$ ${valorReais.toFixed(2).replace('.', ',')}` : 'Valor não informado no código'
       };

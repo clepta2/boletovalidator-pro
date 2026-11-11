@@ -109,7 +109,79 @@ export default {
       });
     }
 
-    // 5. Validação de Boleto (/api/validar-boleto, /api/boleto/validar, /validar, /api/boleto/:linha)
+    // 5. Validação em Lote (/api/validar-boleto/lote)
+    if (path === '/api/validar-boleto/lote' || path === '/api/boleto/lote') {
+      if (request.method !== 'POST') {
+        return new Response(JSON.stringify({ ok: false, error: 'Use POST para validação em lote com {"boletos": [...]}' }), {
+          status: 405,
+          headers: { 'Content-Type': 'application/json; charset=utf-8', ...CORS_HEADERS }
+        });
+      }
+      try {
+        const body = await request.json();
+        const lista = Array.isArray(body.boletos) ? body.boletos : (Array.isArray(body) ? body : []);
+        if (!lista.length) {
+          return new Response(JSON.stringify({ ok: false, error: 'Array "boletos" vazio ou não fornecido.' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json; charset=utf-8', ...CORS_HEADERS }
+          });
+        }
+        if (lista.length > 100) {
+          return new Response(JSON.stringify({ ok: false, error: 'Limite máximo de 100 boletos por requisição em lote.' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json; charset=utf-8', ...CORS_HEADERS }
+          });
+        }
+
+        const resultados = lista.map(b => BoletoValidatorPro.validarLocal(b));
+        const validos = resultados.filter(r => r.valido);
+        const valorTotal = validos.reduce((acc, r) => acc + (r.valor || 0), 0);
+
+        return new Response(JSON.stringify({
+          ok: true,
+          totalEnviados: lista.length,
+          totalValidos: validos.length,
+          totalInvalidos: lista.length - validos.length,
+          valorTotalNominal: Number(valorTotal.toFixed(2)),
+          valorTotalFormatado: `R$ ${valorTotal.toFixed(2).replace('.', ',')}`,
+          boletos: resultados,
+          timestamp: new Date().toISOString()
+        }, null, 2), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json; charset=utf-8', ...CORS_HEADERS }
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ ok: false, error: 'JSON inválido: ' + err.message }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json; charset=utf-8', ...CORS_HEADERS }
+        });
+      }
+    }
+
+    // 6. Extrator de Boletos em Textos / Mensagens (/api/validar-boleto/extrair)
+    if (path === '/api/validar-boleto/extrair' || path === '/api/boleto/extrair') {
+      let texto = '';
+      if (request.method === 'POST') {
+        try {
+          const body = await request.json();
+          texto = body.texto || body.mensagem || body.content || '';
+        } catch (_) {}
+      } else {
+        texto = url.searchParams.get('texto') || url.searchParams.get('q') || '';
+      }
+      const extraidos = BoletoValidatorPro.extrairDeTexto(texto);
+      return new Response(JSON.stringify({
+        ok: true,
+        totalEncontrados: extraidos.length,
+        boletos: extraidos,
+        timestamp: new Date().toISOString()
+      }, null, 2), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json; charset=utf-8', ...CORS_HEADERS }
+      });
+    }
+
+    // 7. Validação de Boleto Individual (/api/validar-boleto, /api/boleto/validar, /validar, /api/boleto/:linha)
     if (path === '/api/validar-boleto' || path === '/api/boleto/validar' || path === '/validar' || path.startsWith('/api/boleto/')) {
       let boletoInput = null;
 

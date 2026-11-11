@@ -104,6 +104,35 @@ document.querySelector('#linhaDigitavelInput').addEventListener('input', (e) => 
 ### 3. Suporte Completo a Boletos de Concessionárias (Água, Luz, Gás e Tributos)
 Linhas de 48 dígitos iniciadas com `8` são automaticamente identificadas pelo segmento (Prefeitura, Saneamento, Energia, Telecomunicações).
 
+### 4. Leitores de Código de Barras Físicos / Câmera (44 ➔ 47 Dígitos)
+Leitores USB ou scanners de aplicativo leem os 44 dígitos impressos no papel. O SDK converte instantaneamente para a linha digitável com os DVs calculados:
+
+```javascript
+import { BoletoValidatorPro } from 'boletovalidator-pro';
+
+const linhaDigitavel = BoletoValidatorPro.codigoBarrasParaLinhaDigitavel('34194964500000125001090000000283100925747000');
+console.log(linhaDigitavel); // '34191090080000028310109257470006496450000012500'
+```
+
+### 5. Geração de Código de Barras Vetorial em SVG (Padrão ITF FEBRABAN)
+Renderize o código de barras oficial na tela ou em impressoras térmicas (80mm/58mm) com 0 dependências:
+
+```javascript
+const res = BoletoValidatorPro.validarLocal(linha);
+if (res.valido) {
+  document.querySelector('#barcodeContainer').innerHTML = res.barcodeSvg;
+}
+```
+
+### 6. Extrator de Boletos em Textos Livres / Mensagens de WhatsApp
+Encontra e valida boletos dentro de mensagens ou transcrições de áudio:
+
+```javascript
+const mensagem = "Olá, segue o boleto de pagamento: 34191.09008 00000.283101 09257.470006 4 96450000012500 obrigado!";
+const boletos = BoletoValidatorPro.extrairDeTexto(mensagem);
+console.log(boletos[0].valorFormatado); // 'R$ 125,00'
+```
+
 ---
 
 ## 🔒 Marketplace de APIs & Ecossistema

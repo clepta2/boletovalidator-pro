@@ -22,4 +22,26 @@ const resLuz = BoletoValidatorPro.validarLocal(contaLuz);
 console.assert(resLuz.valido === true, 'Conta de concessionária deve ser válida');
 console.log('✅ Boleto Concessionária OK:', resLuz.tipo, resLuz.segmento?.descricao, resLuz.valorFormatado);
 
+// 4. Conversão Bidirecional: Código de Barras (44) -> Linha Digitável (47)
+const barrasItau = resItau.codigoBarras;
+const linhaRecriada = BoletoValidatorPro.codigoBarrasParaLinhaDigitavel(barrasItau);
+console.assert(linhaRecriada === resItau.linhaDigitavelLimpa, 'Linha recriada deve bater com a original');
+console.log('✅ Conversão Bidirecional (44 -> 47 dígitos) OK:', linhaRecriada);
+
+// 5. Geração de Código de Barras SVG (ITF FEBRABAN)
+const svg = BoletoValidatorPro.gerarBarcodeSvg(barrasItau);
+console.assert(svg && svg.startsWith('<svg') && svg.endsWith('</svg>'), 'SVG deve ser válido');
+console.log('✅ Geração de Código de Barras SVG FEBRABAN OK! Tamanho:', svg.length, 'bytes');
+
+// 6. Extrator de Boletos em Textos Livres / OCR
+const msgZap = 'Prezados, segue o boleto de teste 34191.09008 00000.283101 09257.470006 4 96450000012500 para pagamento urgente!';
+const extraidos = BoletoValidatorPro.extrairDeTexto(msgZap);
+console.assert(extraidos.length === 1 && extraidos[0].valido === true, 'Deve extrair exatamente 1 boleto válido');
+console.log('✅ Extrator Inteligente de Boletos em Textos/WhatsApp OK:', extraidos[0].banco.nome);
+
+// 7. Status e Dias de Vencimento
+const statusVenc = BoletoValidatorPro.calcularStatusVencimento('2026-11-20');
+console.assert(statusVenc && typeof statusVenc.diasParaVencer === 'number', 'Status de vencimento deve calcular dias');
+console.log('✅ Cálculo de Dias de Vencimento OK:', statusVenc.situacao);
+
 console.log('🎉 Todos os testes unitários passaram!');

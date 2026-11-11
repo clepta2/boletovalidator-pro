@@ -119,6 +119,10 @@
         <button class="btn-secondary" onclick="exemploConcessionaria()">💡 Exemplo Concessionária (R$ 150,00)</button>
         <button class="btn-secondary" onclick="exemploAdulterado()">❌ Testar Linha Adulterada</button>
       </div>
+      <div id="barcodeContainer" style="display:none;background:#fff;padding:16px;border-radius:10px;margin-bottom:16px;text-align:center;box-shadow:0 4px 15px rgba(0,0,0,0.3)">
+        <div id="barcodeSvgWrapper" style="color:#000;max-width:500px;margin:0 auto"></div>
+        <div id="barcodeText" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#000;font-weight:700;margin-top:6px;letter-spacing:1px"></div>
+      </div>
       <div class="output-box" id="resultOutput">Pronto para validar.</div>
     </div>
 
@@ -134,6 +138,17 @@
       const val = document.getElementById('boletoInput').value;
       const res = BoletoValidatorPro.validarLocal(val);
       document.getElementById('resultOutput').innerText = JSON.stringify(res, null, 2);
+
+      const bContainer = document.getElementById('barcodeContainer');
+      const bWrapper = document.getElementById('barcodeSvgWrapper');
+      const bText = document.getElementById('barcodeText');
+      if (res.valido && res.barcodeSvg) {
+        bContainer.style.display = 'block';
+        bWrapper.innerHTML = res.barcodeSvg;
+        bText.innerText = res.codigoBarras;
+      } else {
+        bContainer.style.display = 'none';
+      }
     };
 
     window.exemploBancario = function() {

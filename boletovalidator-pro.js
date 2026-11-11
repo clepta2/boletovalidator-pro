@@ -203,6 +203,142 @@ export class BoletoValidatorPro {
   }
 
   /**
+   * Converte Código de Barras de 44 dígitos em Linha Digitável oficial (47 ou 48 dígitos)
+   * @param {string} barcode 
+   * @returns {string|null}
+   */
+  static codigoBarrasParaLinhaDigitavel(barcode) {
+    const limpo = BoletoValidatorPro.limpar(barcode);
+    if (limpo.length !== 44) return null;
+
+    // Concessionárias (começa com 8)
+    if (limpo.startsWith('8')) {
+      const b1 = limpo.slice(0, 11);
+      const dv1 = BoletoValidatorPro.modulo10(b1);
+      const b2 = limpo.slice(11, 22);
+      const dv2 = BoletoValidatorPro.modulo10(b2);
+      const b3 = limpo.slice(22, 33);
+      const dv3 = BoletoValidatorPro.modulo10(b3);
+      const b4 = limpo.slice(33, 44);
+      const dv4 = BoletoValidatorPro.modulo10(b4);
+      return `${b1}${dv1}${b2}${dv2}${b3}${dv3}${b4}${dv4}`;
+    }
+
+    // Boleto Bancário
+    const banco = limpo.slice(0, 3);
+    const moeda = limpo.slice(3, 4);
+    const dvGeral = limpo.slice(4, 5);
+    const fatorVenc = limpo.slice(5, 9);
+    const valor = limpo.slice(9, 19);
+    const campoLivre1 = limpo.slice(19, 24);
+    const campoLivre2 = limpo.slice(24, 34);
+    const campoLivre3 = limpo.slice(34, 44);
+
+    const c1 = `${banco}${moeda}${campoLivre1}`;
+    const dv1 = BoletoValidatorPro.modulo10(c1);
+
+    const c2 = campoLivre2;
+    const dv2 = BoletoValidatorPro.modulo10(c2);
+
+    const c3 = campoLivre3;
+    const dv3 = BoletoValidatorPro.modulo10(c3);
+
+    return `${c1}${dv1}${c2}${dv2}${c3}${dv3}${dvGeral}${fatorVenc}${valor}`;
+  }
+
+  /**
+   * Calcula se o boleto está vencido, dias em atraso ou dias restantes para vencer
+   * @param {string} isoDateStr - Formato YYYY-MM-DD
+   * @returns {Object|null}
+   */
+  static calcularStatusVencimento(isoDateStr) {
+    if (!isoDateStr) return null;
+    const parts = isoDateStr.split('-');
+    if (parts.length !== 3) return null;
+    const ano = parseInt(parts[0], 10);
+    const mes = parseInt(parts[1], 10) - 1;
+    const dia = parseInt(parts[2], 10);
+
+    const hoje = new Date();
+    const hojeUtc = Date.UTC(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+    const vencUtc = Date.UTC(ano, mes, dia);
+
+    const diffMs = vencUtc - hojeUtc;
+    const diffDias = Math.round(diffMs / 86400000);
+
+    if (diffDias < 0) {
+      const atraso = Math.abs(diffDias);
+      return {
+        estaVencido: true,
+        diasAtraso: atraso,
+        diasParaVencer: 0,
+        situacao: `Vencido há ${atraso} dia(s)`
+      };
+    }
+    if (diffDias === 0) {
+      return {
+        estaVencido: false,
+        diasAtraso: 0,
+        diasParaVencer: 0,
+        situacao: 'Vence hoje'
+      };
+    }
+    return {
+      estaVencido: false,
+      diasAtraso: 0,
+      diasParaVencer: diffDias,
+      situacao: `A vencer em ${diffDias} dia(s)`
+    };
+  }
+
+  /**
+   * Gera código de barras gráfico vetorial em SVG (Padrão ITF / Interleaved 2 of 5 da FEBRABAN)
+   * Renderização 100% nativa sem dependência de bibliotecas externas ou canvas.
+   * @param {string} code44 - Código de barras de 44 dígitos
+   * @param {number} [height=65] - Altura em pixels
+   * @returns {string|null}
+   */
+  static gerarBarcodeSvg(code44, height = 65) {
+    if (!code44 || code44.length !== 44) return null;
+    const BITS = ['00110','10001','01001','11000','00101','10100','01100','00011','10010','01010'];
+    let pattern = '1010';
+    for (let i = 0; i < 44; i += 2) {
+      const b1 = BITS[code44.charCodeAt(i) - 48];
+      const b2 = BITS[code44.charCodeAt(i + 1) - 48];
+      for (let j = 0; j < 5; j++) {
+        pattern += b1[j] === '1' ? '11' : '1';
+        pattern += b2[j] === '1' ? '00' : '0';
+      }
+    }
+    pattern += '1101';
+
+    let rects = '';
+    let x = 0;
+    const runs = pattern.match(/(1+|0+)/g) || [];
+    for (const run of runs) {
+      const len = run.length;
+      if (run[0] === '1') {
+        rects += `<rect x="${x}" y="0" width="${len}" height="${height}" fill="currentColor"/>`;
+      }
+      x += len;
+    }
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${x} ${height}" width="100%" height="${height}" preserveAspectRatio="none" style="display:block;max-width:100%">${rects}</svg>`;
+  }
+
+  /**
+   * Varre e extrai automaticamente boletos de mensagens de texto, WhatsApp, e-mails ou OCR
+   * @param {string} texto 
+   * @returns {Array<Object>}
+   */
+  static extrairDeTexto(texto) {
+    if (!texto || typeof texto !== 'string') return [];
+    const regex = /(?:\b\d{5}[.\s]?\d{5}[\s]?\d{5}[.\s]?\d{6}[\s]?\d{5}[.\s]?\d{6}[\s]?\d[\s]?\d{14}\b|\b8\d{11}[-\s]?\d[\s]?\d{11}[-\s]?\d[\s]?\d{11}[-\s]?\d[\s]?\d{11}[-\s]?\d\b|\b\d{44,48}\b)/g;
+    const encontrados = texto.match(regex) || [];
+    const deduplicados = Array.from(new Set(encontrados.map(s => s.trim())));
+    return deduplicados.map(item => BoletoValidatorPro.validarLocal(item)).filter(res => res.valido);
+  }
+
+  /**
    * Validação matemática completa local em memória RAM (0ms de I/O)
    * @param {string} rawInput 
    * @returns {Object}
@@ -258,6 +394,7 @@ export class BoletoValidatorPro {
       const codigoBanco = limpo.slice(0, 3);
       const nomeBanco = BANCOS_BRASIL[codigoBanco] || 'Banco Não Catalogado / Outros';
       const vencimento = BoletoValidatorPro.fatorParaData(fatorVenc);
+      const statusVencimento = vencimento ? BoletoValidatorPro.calcularStatusVencimento(vencimento.iso) : null;
       const valorCentavos = parseInt(valorStr, 10);
       const valorReais = valorCentavos > 0 ? (valorCentavos / 100) : null;
 
@@ -267,12 +404,14 @@ export class BoletoValidatorPro {
         linhaDigitavel: BoletoValidatorPro.formatar(limpo),
         linhaDigitavelLimpa: limpo,
         codigoBarras: codigoBarras,
+        barcodeSvg: BoletoValidatorPro.gerarBarcodeSvg(codigoBarras),
         banco: {
           codigo: codigoBanco,
           nome: nomeBanco
         },
         moeda: limpo.charAt(3) === '9' ? 'BRL (Real)' : 'Outra Moeda',
         vencimento: vencimento,
+        statusVencimento: statusVencimento,
         fatorVencimento: fatorVenc,
         valor: valorReais !== null ? valorReais : 0,
         valorFormatado: valorReais !== null ? `R$ ${valorReais.toFixed(2).replace('.', ',')}` : 'Sem valor nominal preenchido'
@@ -313,6 +452,7 @@ export class BoletoValidatorPro {
         linhaDigitavel: BoletoValidatorPro.formatar(limpo),
         linhaDigitavelLimpa: limpo,
         codigoBarras: codigoBarras,
+        barcodeSvg: BoletoValidatorPro.gerarBarcodeSvg(codigoBarras),
         segmento: {
           codigo: idSegmento,
           descricao: nomeSegmento
@@ -325,10 +465,14 @@ export class BoletoValidatorPro {
     // ─── 3. CÓDIGO DE BARRAS DE 44 DÍGITOS ─────────────────────────────────
     if (limpo.length === 44) {
       if (limpo.startsWith('8')) {
+        const linhaConvertida = BoletoValidatorPro.codigoBarrasParaLinhaDigitavel(limpo);
         return {
           valido: true,
           tipo: 'Código de Barras de Concessionária (44 dígitos)',
           codigoBarras: limpo,
+          linhaDigitavelConvertida: linhaConvertida ? BoletoValidatorPro.formatar(linhaConvertida) : null,
+          linhaDigitavelLimpa: linhaConvertida,
+          barcodeSvg: BoletoValidatorPro.gerarBarcodeSvg(limpo),
           segmento: SEGMENTOS_CONCESSIONARIA[limpo.charAt(1)] || 'Concessionária',
           aviso: 'Código de barras de 44 dígitos válido.'
         };
@@ -346,16 +490,22 @@ export class BoletoValidatorPro {
       const fatorVenc = limpo.slice(5, 9);
       const valorCentavos = parseInt(limpo.slice(9, 19), 10);
       const valorReais = valorCentavos > 0 ? (valorCentavos / 100) : 0;
+      const vencimento = BoletoValidatorPro.fatorParaData(fatorVenc);
+      const linhaConvertida = BoletoValidatorPro.codigoBarrasParaLinhaDigitavel(limpo);
 
       return {
         valido: true,
         tipo: 'Código de Barras Bancário (44 dígitos)',
         codigoBarras: limpo,
+        linhaDigitavelConvertida: linhaConvertida ? BoletoValidatorPro.formatar(linhaConvertida) : null,
+        linhaDigitavelLimpa: linhaConvertida,
+        barcodeSvg: BoletoValidatorPro.gerarBarcodeSvg(limpo),
         banco: {
           codigo: codigoBanco,
           nome: BANCOS_BRASIL[codigoBanco] || 'Banco Não Catalogado'
         },
-        vencimento: BoletoValidatorPro.fatorParaData(fatorVenc),
+        vencimento: vencimento,
+        statusVencimento: vencimento ? BoletoValidatorPro.calcularStatusVencimento(vencimento.iso) : null,
         valor: valorReais,
         valorFormatado: valorReais > 0 ? `R$ ${valorReais.toFixed(2).replace('.', ',')}` : 'Sem valor'
       };

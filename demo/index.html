@@ -115,6 +115,7 @@
         <button onclick="validar()">Validar Agora</button>
       </div>
       <div class="actions">
+        <button class="btn-secondary" onclick="gerarBoletoAoVivo()">🎲 Gerar Novo Boleto de Teste</button>
         <button class="btn-secondary" onclick="exemploBancario()">🏦 Exemplo Itaú (R$ 125,00)</button>
         <button class="btn-secondary" onclick="exemploConcessionaria()">💡 Exemplo Concessionária (R$ 150,00)</button>
         <button class="btn-secondary" onclick="exemploAdulterado()">❌ Testar Linha Adulterada</button>
@@ -163,6 +164,13 @@
 
     window.exemploAdulterado = function() {
       document.getElementById('boletoInput').value = '34191.09009 00000.283101 09257.470006 4 96450000012500';
+      window.validar();
+    };
+
+    window.gerarBoletoAoVivo = function() {
+      const valorRandom = (Math.random() * 500 + 10).toFixed(2);
+      const novo = BoletoValidatorPro.gerarBoleto({ valor: Number(valorRandom) });
+      document.getElementById('boletoInput').value = novo.linhaFormatada;
       window.validar();
     };
 

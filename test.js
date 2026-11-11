@@ -44,4 +44,13 @@ const statusVenc = BoletoValidatorPro.calcularStatusVencimento('2026-11-20');
 console.assert(statusVenc && typeof statusVenc.diasParaVencer === 'number', 'Status de vencimento deve calcular dias');
 console.log('✅ Cálculo de Dias de Vencimento OK:', statusVenc.situacao);
 
+// 8. Gerador de Boletos FEBRABAN e Auto-Validação
+const gerado = BoletoValidatorPro.gerarBoleto({ banco: '341', valor: 380.50, vencimento: '2026-11-30' });
+console.log('✅ Boleto Gerado:', gerado.linhaFormatada, gerado.valorFormatado, gerado.vencimento);
+const validacaoDoGerado = BoletoValidatorPro.validarLocal(gerado.linhaLimpa);
+console.assert(validacaoDoGerado.valido === true, 'Boleto gerado deve ser 100% matematicamente válido');
+console.assert(validacaoDoGerado.valor === 380.50, 'Valor validado deve bater com o gerado');
+console.assert(validacaoDoGerado.banco.codigo === '341', 'Banco validado deve bater com o gerado');
+console.log('✅ Auto-Validação do Boleto Gerado OK! Válido:', validacaoDoGerado.valido, 'Valor:', validacaoDoGerado.valorFormatado);
+
 console.log('🎉 Todos os testes unitários passaram!');

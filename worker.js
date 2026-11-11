@@ -181,7 +181,38 @@ export default {
       });
     }
 
-    // 7. Validação de Boleto Individual (/api/validar-boleto, /api/boleto/validar, /validar, /api/boleto/:linha)
+    // 7. Gerador de Boleto Válido para Testes (/api/validar-boleto/gerar ou /api/gerar)
+    if (path === '/api/validar-boleto/gerar' || path === '/api/boleto/gerar' || path === '/api/gerar' || path === '/gerar') {
+      let params = {};
+      if (request.method === 'POST') {
+        try { params = await request.json(); } catch (_) {}
+      } else {
+        params = {
+          banco: url.searchParams.get('banco') || '341',
+          valor: url.searchParams.get('valor') || 125.00,
+          vencimento: url.searchParams.get('vencimento')
+        };
+      }
+      const gerado = BoletoValidatorPro.gerarBoleto(params);
+      const validacaoAutomatica = BoletoValidatorPro.validarLocal(gerado.linhaLimpa);
+
+      return new Response(JSON.stringify({
+        ok: true,
+        boletoGerado: gerado,
+        autoValidacao: {
+          valido: validacaoAutomatica.valido,
+          bancoValidado: validacaoAutomatica.banco?.nome,
+          valorValidado: validacaoAutomatica.valorFormatado,
+          vencimentoValidado: validacaoAutomatica.vencimento?.formatada
+        },
+        timestamp: new Date().toISOString()
+      }, null, 2), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json; charset=utf-8', ...CORS_HEADERS }
+      });
+    }
+
+    // 8. Validação de Boleto Individual (/api/validar-boleto, /api/boleto/validar, /validar, /api/boleto/:linha)
     if (path === '/api/validar-boleto' || path === '/api/boleto/validar' || path === '/validar' || path.startsWith('/api/boleto/')) {
       let boletoInput = null;
 

@@ -285,6 +285,110 @@ export class BoletoValidatorPro {
   }
 
   /**
+   * Converte Data (YYYY-MM-DD ou DD/MM/YYYY) para Fator de Vencimento FEBRABAN
+   * @param {string} dataStr 
+   * @returns {string} Fator com 4 dígitos
+   */
+  static dataParaFator(dataStr) {
+    if (!dataStr) return '0000';
+    let ano, mes, dia;
+    if (dataStr.includes('-')) {
+      const parts = dataStr.split('-');
+      ano = parseInt(parts[0], 10);
+      mes = parseInt(parts[1], 10) - 1;
+      dia = parseInt(parts[2], 10);
+    } else if (dataStr.includes('/')) {
+      const parts = dataStr.split('/');
+      dia = parseInt(parts[0], 10);
+      mes = parseInt(parts[1], 10) - 1;
+      ano = parseInt(parts[2], 10);
+    } else {
+      return '0000';
+    }
+
+    const alvoUtc = Date.UTC(ano, mes, dia);
+    // FEBRABAN Ciclo 2 (a partir de 22/02/2025 fator 1000)
+    const baseCiclo2 = Date.UTC(2025, 1, 22);
+    const diffDias = Math.round((alvoUtc - baseCiclo2) / 86400000);
+    const fator = 1000 + diffDias;
+    return String(Math.max(1000, fator)).padStart(4, '0');
+  }
+
+  /**
+   * Gerador Oficial de Boletos Bancários Válidos segundo o padrão FEBRABAN Módulo 10/11
+   * Ideal para testes, homologação e geração de cobranças
+   * @param {Object} [params]
+   * @param {string} [params.banco='341'] - Código de 3 dígitos do banco (001, 237, 341, 033, 104)
+   * @param {number} [params.valor=125.00] - Valor nominal em Reais
+   * @param {string} [params.vencimento] - Data YYYY-MM-DD (padrão: 10 dias à frente)
+   * @returns {Object} Boleto gerado com linha digitável, código de barras e validação
+   */
+  static gerarBoleto(params = {}) {
+    const bancoCode = String(params.banco || '341').padStart(3, '0');
+    const moeda = '9'; // 9 = Real (BRL)
+
+    let vencimentoIso = params.vencimento;
+    if (!vencimentoIso) {
+      const dataFutura = new Date(Date.now() + 10 * 86400000);
+      const y = dataFutura.getUTCFullYear();
+      const m = String(dataFutura.getUTCMonth() + 1).padStart(2, '0');
+      const d = String(dataFutura.getUTCDate()).padStart(2, '0');
+      vencimentoIso = `${y}-${m}-${d}`;
+    }
+
+    const fator = BoletoValidatorPro.dataParaFator(vencimentoIso);
+    const valorCentavos = Math.round(Number(params.valor || 125.00) * 100);
+    const valorStr = String(valorCentavos).padStart(10, '0');
+
+    // Monta Campo Livre (25 dígitos) de acordo com o banco
+    let campoLivre = '';
+    if (bancoCode === '341') { // Itaú
+      campoLivre = '1090000000283100925747000';
+    } else if (bancoCode === '237') { // Bradesco
+      campoLivre = '1234090000001234560000123';
+    } else if (bancoCode === '001') { // Banco do Brasil
+      campoLivre = '1234567000000000000000017';
+    } else if (bancoCode === '033') { // Santander
+      campoLivre = '9991234567000000000123456';
+    } else { // Padrão Genérico
+      campoLivre = '1090000000283100925747000';
+    }
+
+    // Calcula DV Geral do Código de Barras (Módulo 11)
+    const blocoSemDv = `${bancoCode}${moeda}${fator}${valorStr}${campoLivre}`;
+    const dvGeral = BoletoValidatorPro.modulo11Bancario(blocoSemDv);
+
+    const barcode = `${bancoCode}${moeda}${dvGeral}${fator}${valorStr}${campoLivre}`;
+
+    // Monta Linha Digitável Oficial (47 dígitos)
+    const c1 = `${bancoCode}${moeda}${campoLivre.slice(0, 5)}`;
+    const dv1 = BoletoValidatorPro.modulo10(c1);
+
+    const c2 = campoLivre.slice(5, 15);
+    const dv2 = BoletoValidatorPro.modulo10(c2);
+
+    const c3 = campoLivre.slice(15, 25);
+    const dv3 = BoletoValidatorPro.modulo10(c3);
+
+    const linhaLimpa = `${c1}${dv1}${c2}${dv2}${c3}${dv3}${dvGeral}${fator}${valorStr}`;
+    const linhaFormatada = BoletoValidatorPro.formatar(linhaLimpa);
+
+    return {
+      linhaFormatada,
+      linhaLimpa,
+      codigoBarras: barcode,
+      banco: bancoCode,
+      nomeBanco: BANCOS_BRASIL[bancoCode] || 'Banco Não Catalogado',
+      valor: Number(params.valor || 125.00),
+      valorFormatado: `R$ ${Number(params.valor || 125.00).toFixed(2).replace('.', ',')}`,
+      vencimento: vencimentoIso,
+      fatorVencimento: fator,
+      barcodeSvg: BoletoValidatorPro.gerarBarcodeSvg(barcode),
+      aviso: 'Boleto gerado estritamente para testes matemáticos e validação de software.'
+    };
+  }
+
+  /**
    * Converte Linha Digitável de 47 dígitos em Código de Barras de 44 dígitos
    */
   static linhaParaCodigoBarras(linha) {

@@ -1,4 +1,4 @@
-# 📄 BoletoValidator Pro — SDK & Documentação de Integração
+﻿# 📄 BoletoValidator Pro — SDK & Documentação de Integração
 
 > **Cliente SDK e Documentação Oficial de Integração da API BoletoValidator Pro.**  
 > Validação algorítmica matemática (FEBRABAN Módulo 10 e Módulo 11), conversão de linha digitável para código de barras de 44 dígitos e extração de vencimento/valor nominal na borda Anycast (<5ms).
@@ -131,7 +131,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 
 using var client = new HttpClient();
-string url = "https://boletovalidator-pro-api.maputo2.workers.dev/api/validar-boleto?boleto=34191090080000028310109257470006496450000012500";
+string url = "https://ponte.ozpro.com.br/api/validar-boleto?boleto=34191090080000028310109257470006496450000012500";
 string json = await client.GetStringAsync(url);
 Console.WriteLine(json);
 ```
@@ -145,7 +145,7 @@ import java.net.http.HttpResponse;
 
 HttpClient client = HttpClient.newHttpClient();
 HttpRequest req = HttpRequest.newBuilder()
-    .uri(URI.create("https://boletovalidator-pro-api.maputo2.workers.dev/api/validar-boleto?boleto=34191090080000028310109257470006496450000012500"))
+    .uri(URI.create("https://ponte.ozpro.com.br/api/validar-boleto?boleto=34191090080000028310109257470006496450000012500"))
     .GET()
     .build();
 
@@ -158,7 +158,7 @@ System.out.println(resp.body());
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
-final res = await http.get(Uri.parse('https://boletovalidator-pro-api.maputo2.workers.dev/api/validar-boleto?boleto=34191090080000028310109257470006496450000012500'));
+final res = await http.get(Uri.parse('https://ponte.ozpro.com.br/api/validar-boleto?boleto=34191090080000028310109257470006496450000012500'));
 if (res.statusCode == 200) {
   final dados = jsonDecode(res.body);
   print('Banco: ${dados['banco']['nome']}');
@@ -176,7 +176,7 @@ import (
 )
 
 func main() {
-	resp, _ := http.Get("https://boletovalidator-pro-api.maputo2.workers.dev/api/validar-boleto?boleto=34191090080000028310109257470006496450000012500")
+	resp, _ := http.Get("https://ponte.ozpro.com.br/api/validar-boleto?boleto=34191090080000028310109257470006496450000012500")
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
 	fmt.Println(string(body))
@@ -185,7 +185,7 @@ func main() {
 
 ### 🌐 JavaScript / TypeScript (Node.js, React, Vue, Svelte)
 ```javascript
-const res = await fetch('https://boletovalidator-pro-api.maputo2.workers.dev/api/validar-boleto?boleto=34191090080000028310109257470006496450000012500');
+const res = await fetch('https://ponte.ozpro.com.br/api/validar-boleto?boleto=34191090080000028310109257470006496450000012500');
 const dados = await res.json();
 console.log(dados.banco.nome, dados.valorFormatado);
 ```

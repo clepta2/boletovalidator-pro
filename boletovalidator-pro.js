@@ -65,7 +65,7 @@ export class BoletoValidatorPro {
    * @param {string} [options.apiKey] - Chave da API (se aplicável para cotas comerciais)
    */
   constructor(options = {}) {
-    this.endpoint = options.endpoint || 'https://boletovalidator-pro-api.maputo2.workers.dev';
+    this.endpoint = options.endpoint || 'https://ponte.ozpro.com.br';
     this.apiKey = options.apiKey || '';
   }
 

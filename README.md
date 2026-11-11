@@ -1,12 +1,20 @@
-# 📄 BoletoValidator Pro — SDK & API de Validação e Conversão de Boletos
+# 📄 BoletoValidator Pro — SDK & Documentação de Integração
 
-> **API REST e SDK de alta performance em Cloudflare Edge para validação algorítmica (FEBRABAN Módulo 10 e Módulo 11), conversão de linha digitável para código de barras de 44 dígitos e extração de vencimento/valor nominal (<5ms de latência).**
+> **Cliente SDK e Documentação Oficial de Integração da API BoletoValidator Pro.**  
+> Validação algorítmica matemática (FEBRABAN Módulo 10 e Módulo 11), conversão de linha digitável para código de barras de 44 dígitos e extração de vencimento/valor nominal na borda Anycast (<5ms).
 
 [![Status](https://img.shields.io/badge/Status-Cloudflare%20Edge%20API-success.svg)](#)
 [![Padrão](https://img.shields.io/badge/Padrão-FEBRABAN%20Oficial-orange.svg)](#)
 [![Algoritmo](https://img.shields.io/badge/Algoritmos-Módulo%2010%20%26%2011-blue.svg)](#)
 [![Latency](https://img.shields.io/badge/Latência-<5ms-cyan.svg)](#)
 [![License](https://img.shields.io/badge/License-MIT%20SDK-purple.svg)](LICENSE)
+
+---
+
+> 🔒 **Acesso Oficial & Chaves de API**:  
+> O acesso em produção a este microsserviço é disponibilizado e monitorado exclusivamente através do **[Ponte APIs Marketplace](https://ponte.ozpro.com.br)**.  
+> Para obter sua chave de acesso (`ponte_live_...`), contratar cotas de requisições e testar ao vivo no playground interativo, acesse:  
+> 👉 **[https://ponte.ozpro.com.br](https://ponte.ozpro.com.br)**
 
 ---
 
@@ -18,7 +26,7 @@ O **BoletoValidator Pro** é uma solução de infraestrutura leve desenvolvida p
 - **Checkouts de Pagamento & Cobranças**
 - **Bots de Atendimento & OCR de Boletos via WhatsApp**
 
-A validação pode rodar **100% no cliente em memória RAM (0ms I/O)** ou via **API Anycast global da Cloudflare**.
+A validação pode rodar **100% no cliente em memória RAM (0ms I/O)** ou via **API Oficial da Ponte**.
 
 ---
 
@@ -47,10 +55,12 @@ console.log(resultado.codigoBarras); // '341949645000001250010900000002831009257
 console.log(resultado.vencimento.formatada); // Data de vencimento calculada pelo fator
 ```
 
-### 3. Chamada via Edge API Cloudflare
+### 3. Chamada via Edge API Oficial da Ponte
 
 ```javascript
-const api = new BoletoValidatorPro();
+const api = new BoletoValidatorPro({
+  apiKey: 'ponte_live_SEU_TOKEN_AQUI' // Obtenha no Ponte APIs Marketplace
+});
 const res = await api.validar('34191090080000028310109257470006496450000012500');
 console.log(res);
 ```
@@ -58,18 +68,22 @@ console.log(res);
 ### 4. Exemplos de Chamadas HTTP Diretas (Curl / Fetch)
 
 ```bash
-# Validação via Query Param
-curl -X GET "https://boletovalidator-pro-api.maputo2.workers.dev/api/validar-boleto?boleto=34191.09008+00000.283101+09257.470006+4+96450000012500"
+# Validação oficial na Ponte APIs
+curl -X GET "https://ponte.ozpro.com.br/api/validar-boleto?boleto=34191.09008+00000.283101+09257.470006+4+96450000012500" \
+  -H "Authorization: Bearer ponte_live_SUA_CHAVE_AQUI"
 
 # Gerador de Boleto Matemático para Testes e Homologação
-curl -X GET "https://boletovalidator-pro-api.maputo2.workers.dev/api/gerar?valor=489.90&banco=341&vencimento=2026-11-28"
+curl -X GET "https://ponte.ozpro.com.br/api/gerar?valor=489.90&banco=341&vencimento=2026-11-28" \
+  -H "Authorization: Bearer ponte_live_SUA_CHAVE_AQUI"
 
 # Via Path Parameter
-curl -X GET "https://boletovalidator-pro-api.maputo2.workers.dev/api/boleto/34191090080000028310109257470006496450000012500"
+curl -X GET "https://ponte.ozpro.com.br/api/boleto/34191090080000028310109257470006496450000012500" \
+  -H "Authorization: Bearer ponte_live_SUA_CHAVE_AQUI"
 
 # Via POST JSON
-curl -X POST "https://boletovalidator-pro-api.maputo2.workers.dev/api/validar-boleto" \
+curl -X POST "https://ponte.ozpro.com.br/api/validar-boleto" \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ponte_live_SUA_CHAVE_AQUI" \
   -d '{"boleto": "34191090080000028310109257470006496450000012500"}'
 ```
 
@@ -77,14 +91,15 @@ curl -X POST "https://boletovalidator-pro-api.maputo2.workers.dev/api/validar-bo
 
 ## 💻 Como Consultar a API em Qualquer Linguagem de Programação
 
-Como a API é construída sobre HTTP/JSON universal com CORS liberado (`Access-Control-Allow-Origin: *`), ela pode ser chamada por qualquer linguagem ou framework em 3 a 5 linhas de código:
+Como a API é construída sobre HTTP/JSON universal com autenticação Bearer padrão, ela pode ser chamada por qualquer linguagem ou framework em 3 a 5 linhas de código:
 
 ### 🐍 Python
 ```python
 import requests
 
-url = "https://boletovalidator-pro-api.maputo2.workers.dev/api/validar-boleto"
-res = requests.get(url, params={"boleto": "34191090080000028310109257470006496450000012500"}).json()
+headers = {"Authorization": "Bearer ponte_live_SUA_CHAVE_AQUI"}
+url = "https://ponte.ozpro.com.br/api/validar-boleto"
+res = requests.get(url, params={"boleto": "34191090080000028310109257470006496450000012500"}, headers=headers).json()
 
 print("Banco:", res["banco"]["nome"])
 print("Valor:", res["valorFormatado"])
@@ -95,8 +110,13 @@ print("Vencimento:", res["vencimento"]["formatada"])
 ```php
 <?php
 $linha = urlencode("34191090080000028310109257470006496450000012500");
-$url = "https://boletovalidator-pro-api.maputo2.workers.dev/api/validar-boleto?boleto={$linha}";
-$dados = json_decode(file_get_contents($url), true);
+$url = "https://ponte.ozpro.com.br/api/validar-boleto?boleto={$linha}";
+$opcoes = [
+  "http" => [
+    "header" => "Authorization: Bearer ponte_live_SUA_CHAVE_AQUI\r\n"
+  ]
+];
+$dados = json_decode(file_get_contents($url, false, stream_context_create($opcoes)), true);
 
 echo "Banco: " . $dados['banco']['nome'] . PHP_EOL;
 echo "Valor: " . $dados['valorFormatado'] . PHP_EOL;

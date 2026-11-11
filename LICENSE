@@ -1,21 +1,9 @@
-MIT License
+Copyright (c) 2026 clepta2. Todos os direitos reservados.
 
-Copyright (c) 2026 clepta2 / OZPro Enterprise
+TERMOS DE USO E LICEN?A DO CLIENTE SDK / DOCUMENTA??O:
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Este reposit?rio destina-se exclusivamente ? consulta de documenta??o t?cnica e como cliente SDK para integra??o ao nosso Portal Oficial de APIs (em breve).
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+1. O acesso ? infraestrutura em nuvem, aos endpoints e aos microsservi?os de borda ? privado e requer obrigatoriamente uma Chave de API ativa ("x-api-key") emitida pela nossa plataforma de APIs.
+2. Este reposit?rio n?o ? um projeto aberto para modifica??o, fork comercial n?o autorizado ou engenharia reversa.
+3. ? expressamente vedada a redistribui??o comercial, hospedagem espelhada n?o autorizada ou qualquer tentativa de contornar os sistemas de autentica??o, cotas ou cobran?a do nosso Site de APIs.

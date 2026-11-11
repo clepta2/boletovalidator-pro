@@ -58,8 +58,11 @@ console.log(res);
 ### 4. Exemplos de Chamadas HTTP Diretas (Curl / Fetch)
 
 ```bash
-# Via Query Param
+# Validação via Query Param
 curl -X GET "https://boletovalidator-pro-api.maputo2.workers.dev/api/validar-boleto?boleto=34191.09008+00000.283101+09257.470006+4+96450000012500"
+
+# Gerador de Boleto Matemático para Testes e Homologação
+curl -X GET "https://boletovalidator-pro-api.maputo2.workers.dev/api/gerar?valor=489.90&banco=341&vencimento=2026-11-28"
 
 # Via Path Parameter
 curl -X GET "https://boletovalidator-pro-api.maputo2.workers.dev/api/boleto/34191090080000028310109257470006496450000012500"

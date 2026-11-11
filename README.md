@@ -75,6 +75,103 @@ curl -X POST "https://boletovalidator-pro-api.maputo2.workers.dev/api/validar-bo
 
 ---
 
+## 💻 Como Consultar a API em Qualquer Linguagem de Programação
+
+Como a API é construída sobre HTTP/JSON universal com CORS liberado (`Access-Control-Allow-Origin: *`), ela pode ser chamada por qualquer linguagem ou framework em 3 a 5 linhas de código:
+
+### 🐍 Python
+```python
+import requests
+
+url = "https://boletovalidator-pro-api.maputo2.workers.dev/api/validar-boleto"
+res = requests.get(url, params={"boleto": "34191090080000028310109257470006496450000012500"}).json()
+
+print("Banco:", res["banco"]["nome"])
+print("Valor:", res["valorFormatado"])
+print("Vencimento:", res["vencimento"]["formatada"])
+```
+
+### 🐘 PHP (Laravel, WordPress, WooCommerce, Legados)
+```php
+<?php
+$linha = urlencode("34191090080000028310109257470006496450000012500");
+$url = "https://boletovalidator-pro-api.maputo2.workers.dev/api/validar-boleto?boleto={$linha}";
+$dados = json_decode(file_get_contents($url), true);
+
+echo "Banco: " . $dados['banco']['nome'] . PHP_EOL;
+echo "Valor: " . $dados['valorFormatado'] . PHP_EOL;
+?>
+```
+
+### 🔷 C# / .NET (Sistemas Desktop, Windows Forms, PDVs)
+```csharp
+using System;
+using System.Net.Http;
+using System.Text.Json;
+using System.Threading.Tasks;
+
+using var client = new HttpClient();
+string url = "https://boletovalidator-pro-api.maputo2.workers.dev/api/validar-boleto?boleto=34191090080000028310109257470006496450000012500";
+string json = await client.GetStringAsync(url);
+Console.WriteLine(json);
+```
+
+### ☕ Java / Kotlin (Android & Spring Boot)
+```java
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+
+HttpClient client = HttpClient.newHttpClient();
+HttpRequest req = HttpRequest.newBuilder()
+    .uri(URI.create("https://boletovalidator-pro-api.maputo2.workers.dev/api/validar-boleto?boleto=34191090080000028310109257470006496450000012500"))
+    .GET()
+    .build();
+
+HttpResponse<String> resp = client.send(req, HttpResponse.BodyHandlers.ofString());
+System.out.println(resp.body());
+```
+
+### 💙 Flutter / Dart (Apps Mobile iOS & Android)
+```dart
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+
+final res = await http.get(Uri.parse('https://boletovalidator-pro-api.maputo2.workers.dev/api/validar-boleto?boleto=34191090080000028310109257470006496450000012500'));
+if (res.statusCode == 200) {
+  final dados = jsonDecode(res.body);
+  print('Banco: ${dados['banco']['nome']}');
+}
+```
+
+### 🐹 Go (Golang)
+```go
+package main
+
+import (
+	"fmt"
+	"io"
+	"net/http"
+)
+
+func main() {
+	resp, _ := http.Get("https://boletovalidator-pro-api.maputo2.workers.dev/api/validar-boleto?boleto=34191090080000028310109257470006496450000012500")
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	fmt.Println(string(body))
+}
+```
+
+### 🌐 JavaScript / TypeScript (Node.js, React, Vue, Svelte)
+```javascript
+const res = await fetch('https://boletovalidator-pro-api.maputo2.workers.dev/api/validar-boleto?boleto=34191090080000028310109257470006496450000012500');
+const dados = await res.json();
+console.log(dados.banco.nome, dados.valorFormatado);
+```
+
+---
+
 ## 💡 Casos de Uso Recomendados (Exemplos Práticos de Integração)
 
 ### 1. Prevenção de Fraudes de Boleto Adulterado no Contas a Pagar

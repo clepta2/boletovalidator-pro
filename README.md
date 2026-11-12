@@ -72,10 +72,25 @@ console.log(res);
 curl -X GET "https://boletovalidator-pro-api.maputo3.workers.dev/api/validar-boleto?boleto=34191090080000028310109257470006496450000012500" \
   -H "x-api-key: SUA_CHAVE_DO_PORTAL"
 
+# Validação em lote (Batch) — até 50 boletos Pro ou 5 gratuitos
+curl -X POST "https://boletovalidator-pro-api.maputo3.workers.dev/api/boleto/lote" \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: SUA_CHAVE_DO_PORTAL" \
+  -d '{"boletos": ["34191090080000028310109257470006496450000012500", "836200000013500000538008000000000000000000000000"]}'
+
 # Gerador de Boleto Matemático para Testes e Homologação
 curl -X GET "https://boletovalidator-pro-api.maputo3.workers.dev/api/gerar?valor=489.90&banco=341&vencimento=2026-11-28" \
   -H "x-api-key: SUA_CHAVE_DO_PORTAL"
 ```
+
+---
+
+## 🛡️ Rate Limiting & Proteção de Cotas
+
+- **Plano Gratuito:** até 60 req/min por isolate de borda.
+- **Plano Pro / Enterprise (`x-api-key`):** até 300 req/min.
+- Para alto volume de processamento (conciliação/contas a pagar), utilize a rota de lote (`/api/boleto/lote`) para validar até 50 boletos por requisição.
+- O contador em memória do Worker é local por isolate e não representa uma cota diária global centralizada.
 
 ---
 

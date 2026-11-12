@@ -1,7 +1,7 @@
 /**
  * boletovalidator-worker.js
  * Standalone Cloudflare Worker para boletovalidator-pro-api em maputo3.workers.dev
- * Rate Limiting ativo: 1 req/s para Free (60 req/min = 86.400 req/dia máx)
+ * Rate limiter local por isolate; não define cota diária global. Lotes reduzem chamadas.
  */
 
 const ipBuckets = new Map();
@@ -315,7 +315,14 @@ export default {
       });
     }
 
-    // 2. Rate Limiting: 1 req/s para Free (60 req/min = 86.400/dia máx) | 300 req/min para Pro
+    let bodyJson = null;
+    if (request.method === 'POST') {
+      try {
+        bodyJson = await request.json();
+      } catch (_) {}
+    }
+
+    // 2. Rate Limiting: contador local por isolate
     const apiKey = request.headers.get('x-api-key') ||
                    request.headers.get('Authorization')?.replace(/^Bearer\s+/i, '') ||
                    url.searchParams.get('api_key') ||
@@ -328,7 +335,7 @@ export default {
     if (!rl.ok && pathname !== '/health' && pathname !== '/status' && pathname !== '') {
       return new Response(JSON.stringify({
         ok: false,
-        error: 'Limite de requisições excedido. Máximo permitido: 1 req/segundo (60 req/min = 86.400 req/dia máx). Para vazão ilimitada, utilize sua chave x-api-key Pro.',
+        error: 'Limite temporário de requisições excedido. Aguarde o período indicado em Retry-After.',
         retryAfterSeconds: Math.ceil((rl.resetAt - Date.now()) / 1000)
       }, null, 2), {
         status: 429,
@@ -349,8 +356,62 @@ export default {
         version: '2.0.0',
         cluster: 'Cloudflare Edge Anycast (maputo3.workers.dev)',
         status: 'online',
+        rotas: {
+          validar: 'GET ou POST /api/validar-boleto',
+          lote: 'POST /api/boleto/lote (até 50 boletos Pro ou 5 gratuitos)'
+        },
         github: 'https://github.com/clepta2/boletovalidator-pro',
         docs: 'https://ponte.ozpro.com.br'
+      }, null, 2), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' }
+      });
+    }
+
+    // Validação em Lote de Boletos (POST /api/boleto/lote ou /api/validar-boleto/lote)
+    if (pathname === '/api/boleto/lote' || pathname === '/api/validar-boleto/lote') {
+      if (request.method !== 'POST') {
+        return new Response(JSON.stringify({ ok: false, error: 'Use POST com um array "boletos".' }), {
+          status: 405,
+          headers: { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' }
+        });
+      }
+
+      const lista = bodyJson && Array.isArray(bodyJson.boletos) ? bodyJson.boletos : null;
+      if (!lista || lista.length === 0) {
+        return new Response(JSON.stringify({ ok: false, error: 'Envie um array não vazio "boletos" no corpo JSON.' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' }
+        });
+      }
+
+      const maxItems = isPro ? 50 : 5;
+      if (lista.length > maxItems) {
+        return new Response(JSON.stringify({
+          ok: false,
+          error: `O lote aceita até ${maxItems} boletos por requisição neste plano.`,
+          maxItems
+        }), {
+          status: 413,
+          headers: { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' }
+        });
+      }
+
+      const resultados = lista.map((item) => {
+        const res = validarBoletoAlgoritmo(item);
+        return {
+          boletoInformado: String(item),
+          ok: res.valido,
+          ...res
+        };
+      });
+
+      return new Response(JSON.stringify({
+        ok: true,
+        totalSolicitado: lista.length,
+        totalValidos: resultados.filter((item) => item.valido).length,
+        totalInvalidos: resultados.filter((item) => !item.valido).length,
+        resultados
       }, null, 2), {
         status: 200,
         headers: { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' }

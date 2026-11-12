@@ -53,4 +53,31 @@ console.assert(validacaoDoGerado.valor === 380.50, 'Valor validado deve bater co
 console.assert(validacaoDoGerado.banco.codigo === '341', 'Banco validado deve bater com o gerado');
 console.log('✅ Auto-Validação do Boleto Gerado OK! Válido:', validacaoDoGerado.valido, 'Valor:', validacaoDoGerado.valorFormatado);
 
+// 9. Testes da Rota de Lote do Worker
+import worker from './worker.js';
+console.log('\n--- 9. Rota de Validação em Lote ---');
+const resLote = await worker.fetch(new Request('https://api.test/api/boleto/lote', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ boletos: [itau, fraudado, '123'] })
+}), {});
+const bodyLote = await resLote.json();
+console.assert(resLote.status === 200, 'Status deve ser 200');
+console.assert(bodyLote.totalSolicitado === 3, 'Deve processar 3 boletos');
+console.assert(bodyLote.totalValidos === 1, '1 boleto válido');
+console.assert(bodyLote.totalInvalidos === 2, '2 boletos inválidos');
+console.log('✅ Rota de lote processa e separa boletos válidos e inválidos');
+
+const resExcesso = await worker.fetch(new Request('https://api.test/api/boleto/lote', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ boletos: Array(6).fill('123') })
+}), {});
+console.assert(resExcesso.status === 413, 'Excesso gratuito deve retornar 413');
+console.log('✅ Limite de tamanho de lote gratuito respeitado (413)');
+
+const resMetodo = await worker.fetch(new Request('https://api.test/api/boleto/lote'), {});
+console.assert(resMetodo.status === 405, 'GET em /api/boleto/lote deve retornar 405');
+console.log('✅ Método incorreto rejeitado');
+
 console.log('🎉 Todos os testes unitários passaram!');

@@ -1,0 +1,14 @@
+name = "boletovalidator-pro-api"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+workers_dev = true
+
+[observability]
+enabled = true
+
+[vars]
+SERVICE_NAME = "BoletoValidator Pro API"
+ENVIRONMENT = "production"
+GITHUB_REPO = "clepta2/boletovalidator-pro"
+DOCS_URL = "https://github.com/clepta2/boletovalidator-pro"
+API_VERSION = "2.0.0"

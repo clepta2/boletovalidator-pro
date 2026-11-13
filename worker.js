@@ -1,3 +1,4 @@
+import BoletoValidatorPro from './boletovalidator-pro.js';
 /**
  * boletovalidator-worker.js
  * Standalone Cloudflare Worker para boletovalidator-pro-api em maputo3.workers.dev
@@ -418,20 +419,21 @@ export default {
       });
     }
 
-    if (pathname === '/api/gerar') {
-      const demo = '34191090080000028310109257470006496450000012500';
-      const val = validarBoletoAlgoritmo(demo);
+    if (pathname === '/api/gerar' || pathname === '/api/boleto/gerar') {
+      let params = {};
+      if (bodyJson) {
+        params = bodyJson;
+      } else {
+        params = {
+          banco: url.searchParams.get('banco') || '341',
+          valor: parseFloat(url.searchParams.get('valor') || '125.00'),
+          vencimento: url.searchParams.get('vencimento') || ''
+        };
+      }
+      const gerado = BoletoValidatorPro.gerarBoleto(params);
       return new Response(JSON.stringify({
         ok: true,
-        boletoGerado: {
-          linhaDigitavel: val.linhaDigitavel,
-          linhaFormatada: val.linhaDigitavel,
-          linhaLimpa: demo,
-          banco: val.banco,
-          valor: val.valor,
-          valorFormatado: val.valorFormatado,
-          vencimento: val.vencimento
-        }
+        boletoGerado: gerado
       }, null, 2), {
         status: 200,
         headers: { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' }
@@ -440,11 +442,21 @@ export default {
 
     if (pathname === '/api/validar-boleto' || pathname === '/api/boleto/validar') {
       const apiKey = request.headers.get('x-api-key') ||
-                     request.headers.get('Authorization')?.replace(/^Bearer\\s+/i, '') ||
+                     request.headers.get('Authorization')?.replace(/^Bearer\s+/i, '') ||
                      url.searchParams.get('api_key') ||
-                     url.searchParams.get('key');
+                     url.searchParams.get('key') || '';
+      const cleanKey = String(apiKey).trim();
+      const isValidKey = Boolean(
+        cleanKey && (
+          cleanKey.startsWith('bol_live_') || 
+          cleanKey.startsWith('bol_pro_') || 
+          cleanKey.startsWith('bol_master_') || 
+          cleanKey.startsWith('pnt_live_') ||
+          (env && (env.API_KEY === cleanKey || env.PRO_KEY === cleanKey))
+        ) && cleanKey.length >= 16
+      );
 
-      if (!apiKey || String(apiKey).trim().length < 16) {
+      if (!isValidKey) {
         return new Response(JSON.stringify({
           ok: false,
           error: 'Acesso n?o autorizado. Chave de API ausente ou inv?lida.',

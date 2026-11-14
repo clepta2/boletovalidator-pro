@@ -1149,6 +1149,7 @@ export function auditarBoleto(params) {
   }
 
   const alertas = [];
+  const codigos = [];
   let scoreRisco = 0;
   const checagens = {
     modulo10e11Validos: true,
@@ -1166,6 +1167,7 @@ export function auditarBoleto(params) {
     if (barrasVisuaisLimpo.length === 44 && barrasVisuaisLimpo !== validacao.codigoBarras) {
       checagens.codigoBarrasBateComLinha = false;
       scoreRisco += 60;
+      codigos.push('BARRAS_ADULTERADAS');
       alertas.push(`Linha digitável (${validacao.codigoBarras}) não corresponde às barras impressas no documento (${barrasVisuaisLimpo}) - Forte sinal de adulteração de linha!`);
     }
   }
@@ -1177,6 +1179,7 @@ export function auditarBoleto(params) {
       if (Math.abs(vImp - validacao.valor) > 0.01) {
         checagens.valorConsistente = false;
         scoreRisco += 45;
+        codigos.push('VALOR_DIVERGENTE');
         alertas.push(`Valor impresso (R$ ${vImp.toFixed(2)}) diverge do valor matemático codificado na linha (R$ ${validacao.valor.toFixed(2)})!`);
       }
     }
@@ -1188,6 +1191,7 @@ export function auditarBoleto(params) {
     if (vStr !== validacao.vencimento.iso && vStr !== validacao.vencimento.formatada) {
       checagens.vencimentoConsistente = false;
       scoreRisco += 20;
+      codigos.push('VENCIMENTO_DIVERGENTE');
       alertas.push(`Vencimento impresso (${vStr}) não bate com a data codificada (${validacao.vencimento.formatada}).`);
     }
   }
@@ -1200,6 +1204,7 @@ export function auditarBoleto(params) {
       checagens.cnpjBeneficiarioValido = cpfOk;
       if (!cpfOk) {
         scoreRisco += 35;
+        codigos.push('CPF_BENEFICIARIO_INVALIDO');
         alertas.push('CPF do Beneficiário informado no documento possui dígitos verificadores matematicamente inválidos.');
       }
     } else if (docLimpo.length === 14) {
@@ -1207,6 +1212,7 @@ export function auditarBoleto(params) {
       checagens.cnpjBeneficiarioValido = cnpjOk;
       if (!cnpjOk) {
         scoreRisco += 35;
+        codigos.push('CNPJ_BENEFICIARIO_INVALIDO');
         alertas.push('CNPJ do Beneficiário informado no documento possui dígitos verificadores matematicamente inválidos.');
       }
     }
@@ -1220,6 +1226,7 @@ export function auditarBoleto(params) {
     checagens.pixConsistenteComBoleto = compPix.compativel;
     if (!compPix.compativel) {
       scoreRisco += 50;
+      codigos.push('PIX_DIVERGENTE');
       alertas.push(...compPix.divergencias);
     }
 
@@ -1232,9 +1239,11 @@ export function auditarBoleto(params) {
 
       if (pareceConcessionaria && ehChaveCpf) {
         scoreRisco += 75;
+        codigos.push('GOLPE_CONCESSIONARIA_PIX_PF');
         alertas.push(`🚨 GOLPE DETECTADO: O documento alega ser fatura de serviço público (${p.beneficiarioImpresso || validacao.segmento?.descricao || 'Água/Luz'}), mas o QR Code Pix direciona o pagamento para um CPF DE PESSOA FÍSICA (${dadosPix.chavePix}) em nome de "${dadosPix.nomeRecebedor}". Concessionárias legítimas utilizam exclusivamente CNPJ próprio!`);
       } else if (p.beneficiarioCnpjCpf && String(p.beneficiarioCnpjCpf).replace(/\D/g, '').length === 14 && ehChaveCpf) {
         scoreRisco += 60;
+        codigos.push('GOLPE_PJ_PIX_PF');
         alertas.push(`🚨 DIVERGÊNCIA GRAVE: O documento está no nome de Pessoa Jurídica (CNPJ), mas o QR Code Pix credita um CPF de Pessoa Física (${dadosPix.chavePix}) em nome de "${dadosPix.nomeRecebedor}".`);
       }
     }
@@ -1282,6 +1291,7 @@ export function auditarBoleto(params) {
     const alegaConcessionaria = /sabesp|copasa|sanepar|cedae|enel|cemig|cpfl|copel|light|comgas/i.test(textoDoc);
     if (alegaConcessionaria) {
       scoreRisco += 40;
+      codigos.push('CONCESSIONARIA_EM_LINHA_BANCARIA');
       alertas.push(`⚠️ ATENÇÃO: O documento menciona concessionária de consumo (${p.beneficiarioImpresso || 'Água/Luz'}), porém a linha informada é um boleto bancário de 47 dígitos (${validacao.banco?.nome || 'Banco'}). Contas oficiais de consumo costumam utilizar guias de arrecadação de 48 dígitos (iniciadas por 82 ou 83).`);
     }
 
@@ -1289,6 +1299,7 @@ export function auditarBoleto(params) {
     const alegaMei = /\bmei\b|microempreendedor|das-mei|taxa\s+anual\s+mei|cadastro\s+nacional\s+mei|renovacao\s+mei|associacao\s+comercial\s+mei/i.test(textoDoc);
     if (alegaMei) {
       scoreRisco += 75;
+      codigos.push('GOLPE_FALSO_MEI');
       alertas.push(`🚨 GOLPE DO FALSO MEI: O documento alega ser cobrança ou taxa associativa de MEI / Simples Nacional, mas utiliza boleto bancário comercial privado de 47 dígitos (${validacao.banco?.nome || 'Banco'}). O DAS oficial do MEI é emitido exclusivamente no Portal do Empreendedor e nunca em boleto bancário comercial!`);
     }
 
@@ -1296,6 +1307,7 @@ export function auditarBoleto(params) {
     const alegaInpi = /\binpi\b|propriedade\s+industrial|registro\s+de\s+marcas?|publicacao\s+rpi|taxa\s+marca/i.test(textoDoc);
     if (alegaInpi) {
       scoreRisco += 75;
+      codigos.push('GOLPE_FALSO_INPI');
       alertas.push(`🚨 GOLPE DO FALSO INPI: O documento menciona registro de marcas / patentes ou taxas do INPI, porém a linha digitável é um boleto bancário comercial (47 dígitos). Taxas oficiais do INPI são recolhidas exclusivamente via GRU (Guia de Recolhimento da União)!`);
     }
 
@@ -1303,6 +1315,7 @@ export function auditarBoleto(params) {
     const alegaDarfReceita = /\bdarf\b|receita\s+federal|pgfn|procuradoria\s+geral\s+da\s+fazenda|imposto\s+de\s+renda/i.test(textoDoc);
     if (alegaDarfReceita) {
       scoreRisco += 80;
+      codigos.push('GOLPE_FALSO_DARF');
       alertas.push(`🚨 GOLPE DE TRIBUTO FEDERAL FALSO: O documento alega ser DARF ou débito com a Receita Federal / PGFN, mas utiliza boleto de cobrança bancária privada (${validacao.banco?.nome || 'Banco'}). Tributos oficiais da União utilizam guias de arrecadação iniciadas por 85!`);
     }
   }
@@ -1310,6 +1323,7 @@ export function auditarBoleto(params) {
   // 4. Detecção de Boleto com Valor Aberto (Zerado na linha) com valor fixo impresso
   if (validacao.valor === 0 && p.valorImpresso && Number(p.valorImpresso) > 0) {
     scoreRisco += 35;
+    codigos.push('VALOR_ABERTO_SUSPEITO');
     alertas.push(`⚠️ ALERTA DE VALOR ABERTO: O documento exibe valor impresso nominal (R$ ${Number(p.valorImpresso).toFixed(2).replace('.', ',')}), porém a linha digitável foi gerada com valor zerado/aberto (0000000000). O pagador precisará digitar o valor manualmente.`);
   }
 
@@ -1321,6 +1335,7 @@ export function auditarBoleto(params) {
       const diffDias = Math.abs(Math.round((dImp - dLinha) / (1000 * 60 * 60 * 24)));
       if (diffDias > 120) {
         scoreRisco += 60;
+        codigos.push('VENCIMENTO_RECICLADO_ADULTERADO');
         alertas.push(`🚨 ADULTERAÇÃO DE VENCIMENTO: A data informada no papel (${p.vencimentoImpresso}) diverge em ${diffDias} dias da data codificada matematicamente pelo fator FEBRABAN (${validacao.vencimento.formatada}). Forte sinal de boleto antigo reciclado/adulterado!`);
       }
     } catch (_) {}
@@ -1335,11 +1350,14 @@ export function auditarBoleto(params) {
   }
 
   const scoreSeguranca = Math.max(0, 100 - scoreRisco);
+  const codigo = codigos.length > 0 ? codigos[0] : 'BOLETO_INTEGRO';
 
   return {
     ok: true,
     valido: true,
     status,
+    codigo,
+    codigos,
     scoreSeguranca,
     scoreRisco,
     seguro: scoreSeguranca >= 80,

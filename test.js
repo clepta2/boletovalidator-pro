@@ -173,7 +173,9 @@ const resGolpeSabesp = auditarBoleto({
 console.assert(resGolpeSabesp.status === 'ALERTA_FRAUDE', 'Boleto Sabesp com Pix CPF deve dar ALERTA_FRAUDE');
 console.assert(resGolpeSabesp.scoreRisco >= 75, 'Score de risco deve ser alto');
 console.assert(resGolpeSabesp.finalidade.ehConcessionaria === true, 'Finalidade deve identificar concessionária');
+console.assert(resGolpeSabesp.codigos.includes('GOLPE_CONCESSIONARIA_PIX_PF'), 'Código de erro GOLPE_CONCESSIONARIA_PIX_PF presente');
 console.log('✅ Detecção de Golpe Concessionária x Pix CPF OK!');
+console.log('   Código:', resGolpeSabesp.codigo);
 console.log('   Finalidade:', resGolpeSabesp.finalidade.categoria);
 console.log('   Alerta emitido:', resGolpeSabesp.alertas[0]);
 
@@ -185,8 +187,9 @@ const resGolpeMei = auditarBoleto({
   textoDocumento: 'Notificação extrajudicial: Recolhimento da taxa anual associativa MEI obrigatória.'
 });
 console.assert(resGolpeMei.status === 'ALERTA_FRAUDE', 'Falso MEI deve dar ALERTA_FRAUDE');
+console.assert(resGolpeMei.codigos.includes('GOLPE_FALSO_MEI'), 'Código de erro GOLPE_FALSO_MEI presente');
 console.assert(resGolpeMei.alertas.some(a => a.includes('GOLPE DO FALSO MEI')), 'Deve emitir alerta de falso MEI');
-console.log('✅ Bloqueio de Golpe do Falso MEI OK! Alerta:', resGolpeMei.alertas[0]);
+console.log('✅ Bloqueio de Golpe do Falso MEI OK! Código:', resGolpeMei.codigo);
 
 // 19. Detecção de Golpe: Falsa Taxa do INPI / Marcas
 console.log('\n--- 19. Detecção de Golpe: Falso INPI ---');
@@ -196,8 +199,9 @@ const resGolpeInpi = auditarBoleto({
   textoDocumento: 'Taxa de publicação RPI referente ao processo de registro de marca INPI.'
 });
 console.assert(resGolpeInpi.status === 'ALERTA_FRAUDE', 'Falso INPI deve dar ALERTA_FRAUDE');
+console.assert(resGolpeInpi.codigos.includes('GOLPE_FALSO_INPI'), 'Código de erro GOLPE_FALSO_INPI presente');
 console.assert(resGolpeInpi.alertas.some(a => a.includes('GOLPE DO FALSO INPI')), 'Deve emitir alerta de falso INPI');
-console.log('✅ Bloqueio de Golpe do Falso INPI OK! Alerta:', resGolpeInpi.alertas[0]);
+console.log('✅ Bloqueio de Golpe do Falso INPI OK! Código:', resGolpeInpi.codigo);
 
 // 20. Detecção de Boleto Antigo Reciclado / Vencimento Adulterado
 console.log('\n--- 20. Detecção de Boleto Antigo Reciclado ---');
@@ -206,7 +210,8 @@ const resBoletoReciclado = auditarBoleto({
   vencimentoImpresso: '2027-11-28' // 1 ano de diferença impresso na folha!
 });
 console.assert(resBoletoReciclado.status === 'ALERTA_FRAUDE', 'Divergência de mais de 120 dias deve dar ALERTA_FRAUDE');
+console.assert(resBoletoReciclado.codigos.includes('VENCIMENTO_RECICLADO_ADULTERADO'), 'Código VENCIMENTO_RECICLADO_ADULTERADO presente');
 console.assert(resBoletoReciclado.alertas.some(a => a.includes('ADULTERAÇÃO DE VENCIMENTO')), 'Deve alertar sobre vencimento reciclado');
-console.log('✅ Detecção de Boleto Reciclado OK! Alerta:', resBoletoReciclado.alertas[0]);
+console.log('✅ Detecção de Boleto Reciclado OK! Código:', resBoletoReciclado.codigo);
 
 console.log('\n🎉 Todos os testes unitários passaram!');

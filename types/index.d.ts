@@ -149,6 +149,7 @@ export interface LaudoAuditoriaBoleto {
   scoreRisco: number;
   seguro: boolean;
   codigo?: string;
+  codigos?: string[];
   motivo?: string;
   tipo?: string;
   banco?: BancoBoleto;

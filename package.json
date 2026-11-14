@@ -1,8 +1,8 @@
 {
   "name": "boletovalidator-pro",
-  "version": "1.0.0",
+  "version": "2.5.0",
   "type": "module",
-  "description": "SDK e API Oficial de Validação, Conversão de Linha Digitável e Extração de Vencimento/Valor de Boletos Bancários e Concessionárias (FEBRABAN Módulo 10/11) na borda Cloudflare Edge (<5ms).",
+  "description": "Scanner de Boleto por Câmera Web, Validador FEBRABAN Oficial (Módulo 10/11), Auditoria Forense Antifraude, Triangulação Pix e Proteção Ativa Anti-Prompt Injection na borda Cloudflare Anycast (<5ms) com Zero Dependências.",
   "main": "boletovalidator-pro.js",
   "module": "boletovalidator-pro.js",
   "types": "types/index.d.ts",
@@ -13,17 +13,26 @@
   "keywords": [
     "boleto",
     "boleto-bancario",
-    "linha-digitavel",
-    "codigo-de-barras",
+    "scanner-boleto",
+    "leitor-codigo-de-barras",
+    "barcode-detector",
     "febraban",
     "modulo-10",
     "modulo-11",
+    "linha-digitavel",
+    "codigo-de-barras",
+    "antifraude",
+    "prompt-injection",
+    "pix",
+    "pix-copia-e-cola",
     "concessionarias",
     "arrecadacao",
     "cloudflare-worker",
     "edge-computing",
     "brasil",
-    "sdk"
+    "sdk",
+    "contas-a-pagar",
+    "erp"
   ],
   "author": "clepta2 <clepta2@gmail.com>",
   "license": "MIT",
@@ -34,5 +43,5 @@
   "bugs": {
     "url": "https://github.com/clepta2/boletovalidator-pro/issues"
   },
-  "homepage": "https://github.com/clepta2/boletovalidator-pro#readme"
+  "homepage": "https://clepta2.github.io/boletovalidator-pro/"
 }

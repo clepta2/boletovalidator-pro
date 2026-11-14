@@ -1,20 +1,31 @@
 ﻿# 📄 BoletoValidator Pro — SDK & Documentação de Integração
 
-> **Cliente SDK e Documentação Oficial de Integração da API BoletoValidator Pro.**  
-> 🔒 **Atenção:** Este repositório destina-se exclusivamente à visualização de documentação técnica e integração do cliente SDK. O serviço de API em nuvem é operado através do nosso **Site de APIs (em breve)**. O acesso aos endpoints na borda requer obrigatoriamente uma **Chave de API (`x-api-key`)** ativa.
+> **Scanner de Boleto por Câmera Web, Validador FEBRABAN Oficial (Módulo 10/11), Auditoria Forense Antifraude e Proteção Anti-Prompt Injection.**  
+> 🔒 **Atenção:** Este repositório destina-se exclusivamente à visualização de documentação técnica, integração do cliente SDK e teste interativo. O serviço de API em nuvem é operado através do nosso **Portal de APIs**.
+
+[![Demo Online](https://img.shields.io/badge/Demo_Online-Testar_na_Câmera_ao_Vivo-2563eb?style=for-the-badge&logo=googlechrome&logoColor=white)](https://clepta2.github.io/boletovalidator-pro/)
+[![GitHub Repo](https://img.shields.io/badge/GitHub-clepta2%2Fboletovalidator--pro-181717?style=for-the-badge&logo=github)](https://github.com/clepta2/boletovalidator-pro)
 
 [![Status](https://img.shields.io/badge/Status-Cloudflare%20Edge%20API-success.svg)](#)
+[![Version](https://img.shields.io/badge/Version-2.5.0-blue.svg)](#)
 [![CI/CD Tests](https://github.com/clepta2/boletovalidator-pro/actions/workflows/test.yml/badge.svg)](https://github.com/clepta2/boletovalidator-pro/actions)
 [![Padrão](https://img.shields.io/badge/Padrão-FEBRABAN%20Oficial-orange.svg)](#)
 [![Algoritmo](https://img.shields.io/badge/Algoritmos-Módulo%2010%20%26%2011-blue.svg)](#)
 [![Autenticação](https://img.shields.io/badge/Autenticação-x--api--key%20Obrigatória-orange.svg)](#)
-[![License: Proprietary](https://img.shields.io/badge/License-Proprietária%20%2F%20Portal%20de%20APIs-red.svg)](LICENSE)
+[![Zero Dependências](https://img.shields.io/badge/Dependências-Zero%20(Pure%20JS)-brightgreen.svg)](#)
 
 ---
 
-> 🔒 **Acesso Oficial & Chaves de API**:  
-> O acesso em produção a este microsserviço é disponibilizado e monitorado exclusivamente através do nosso **Site de APIs (em breve no ar)**.  
-> Para obter sua chave de acesso (`x-api-key`), contratar cotas de requisições e testar ao vivo, realize o cadastro em nossa plataforma de APIs.
+## 📑 Sumário
+
+1. [O que é o BoletoValidator Pro?](#-o-que-é-o-boletovalidator-pro)
+2. [Demonstração ao Vivo no Navegador](#-demonstração-ao-vivo-no-navegador)
+3. [Arquitetura Modular: Micro-Funções Especializadas](#-arquitetura-modular-micro-funções-especializadas)
+4. [Proteção Ativa Anti-Prompt Injection](#-proteção-ativa-anti-prompt-injection)
+5. [Como Integrar em seu Projeto (Node.js, Python, PHP, cURL)](#-como-integrar-em-seu-projeto)
+6. [Catálogo Completo de Endpoints na Nuvem](#-catálogo-completo-de-endpoints-na-nuvem)
+7. [Perguntas Frequentes (FAQ Técnico & SEO)](#-perguntas-frequentes-faq)
+8. [Rate Limiting & Licença](#-rate-limiting--licença)
 
 ---
 
@@ -28,6 +39,17 @@ O **BoletoValidator Pro** é uma solução de infraestrutura leve desenvolvida p
 - **Proteção Ativa contra Prompt Injection em Documentos Financeiros**
 
 A arquitetura adota o modelo **"Client-First, Cloud-Fallback"**: o processamento primário pode rodar 100% no navegador/celular do usuário (0ms e custo zero) com fallback e auditoria na nuvem Cloudflare Anycast (<5ms).
+
+---
+
+## 🌐 Demonstração ao Vivo no Navegador
+
+Você pode testar a leitura por câmera ao vivo, upload de PDF/foto e auditoria forense sem instalar nada:  
+👉 **[https://clepta2.github.io/boletovalidator-pro/](https://clepta2.github.io/boletovalidator-pro/)**
+
+- 📷 **Leitor de Câmera Nativo:** Mira com foco automático usando `BarcodeDetector` (sem biblioteca pesada);
+- 📁 **Arrastar e Soltar PDF:** Pré-visualização e conferência local em memória RAM;
+- 🛡️ **Simulador de Fraude e Injeção:** Teste com 1 clique a reação do sistema a boletos adulterados e comandos maliciosos.
 
 ---
 
@@ -70,20 +92,12 @@ Se um invasor adulterar um PDF ou imagem inserindo comandos ocultos (ex: `"[SYST
 
 ## 🚀 Como Integrar em seu Projeto
 
-### 1. Instalação
-
-```bash
-npm install boletovalidator-pro
-```
-
-*(Ou utilize o arquivo `boletovalidator-pro.js` diretamente no navegador via ES Modules ou Node.js)*.
-
-### 2. Uso Rápido com o SDK (Local em RAM - 0ms de Rede)
+### 1. JavaScript / Node.js / TypeScript
 
 ```javascript
 import { validarLocal, auditarBoleto } from 'boletovalidator-pro';
 
-// 1. Validação instantânea em RAM
+// 1. Validação instantânea em RAM (0ms)
 const resultado = validarLocal('34191.09008 00000.283101 09257.470006 4 96450000012500');
 console.log(resultado.valido); // true
 console.log(resultado.banco.nome); // 'Itaú Unibanco S.A.'
@@ -102,7 +116,50 @@ console.log(laudo.status); // 'INTEGRO_SEM_ADULTERACAO' | 'ATENCAO_DIVERGENCIA' 
 console.log(laudo.scoreSeguranca); // 100
 ```
 
-### 3. Chamada via Edge API Oficial (Endpoints Atômicos)
+### 2. Python
+
+```python
+import requests
+
+url = "https://boletovalidator-pro-api.maputo3.workers.dev/api/auditar"
+headers = {
+    "Content-Type": "application/json",
+    "x-api-key": "SUA_CHAVE_DO_PORTAL"
+}
+payload = {
+    "boleto": "34191.09008 00000.283101 09257.470006 4 96450000012500",
+    "valorImpresso": 125.00,
+    "beneficiarioImpresso": "EMPRESA TESTE"
+}
+
+response = requests.post(url, json=payload, headers=headers)
+print(response.json())
+```
+
+### 3. PHP
+
+```php
+<?php
+$curl = curl_init();
+curl_setopt_array($curl, [
+  CURLOPT_URL => "https://boletovalidator-pro-api.maputo3.workers.dev/api/auditar",
+  CURLOPT_RETURNTRANSFER => true,
+  CURLOPT_CUSTOMREQUEST => "POST",
+  CURLOPT_POSTFIELDS => json_encode([
+    "boleto" => "34191090080000028310109257470006496450000012500",
+    "valorImpresso" => 125.00
+  ]),
+  CURLOPT_HTTPHEADER => [
+    "Content-Type: application/json",
+    "x-api-key: SUA_CHAVE_DO_PORTAL"
+  ],
+]);
+$response = curl_exec($curl);
+curl_close($curl);
+echo $response;
+```
+
+### 4. cURL (Terminal / Bash)
 
 ```bash
 # 1. Auditoria Forense Completa (Linha x Barras x Pix x Valores x Anti-Injection)
@@ -141,17 +198,28 @@ curl -X POST "https://boletovalidator-pro-api.maputo3.workers.dev/api/boleto/lot
 
 ---
 
-## 🛡️ Rate Limiting & Proteção de Cotas
+## ❓ Perguntas Frequentes (FAQ)
+
+### Como ler código de barras de boleto pela câmera no navegador?
+O BoletoValidator Pro disponibiliza uma integração baseada na API nativa `BarcodeDetector` com suporte aos formatos `itf` (Interleaved 2 of 5 da FEBRABAN) e `qr_code` (Pix). Ele captura os frames em tempo real via `getUserMedia()`, sem precisar baixar bibliotecas pesadas de terceiros nem transmitir vídeo para o servidor.
+
+### Como saber se um boleto bancário foi adulterado?
+A fraude de boleto mais comum consiste em alterar apenas a linha digitável (para creditar outra conta) mantendo o desenho das barras ou o cabeçalho original. O endpoint `/api/auditar` executa uma checagem cruzada: compara os dígitos verificadores dos blocos 1, 2, 3 e 4, decodifica a agência/conta do Campo Livre e confere se o valor e o banco correspondem com exatidão aos dados impressos.
+
+### O que são os algoritmos Módulo 10 e Módulo 11 da FEBRABAN?
+- **Módulo 10:** Utilizado para validar os dígitos verificadores de cada um dos 3 blocos da linha digitável bancária e de arrecadações com moeda em Reais (IDs 6 e 7).
+- **Módulo 11:** Utilizado para calcular o Dígito Verificador Geral (posição 33 da linha digitável / posição 5 do código de barras) e em convênios de concessionárias com identificador de moeda 8 e 9.
+
+### Como a proteção contra Prompt Injection funciona em boletos?
+Invasores podem embutir instruções ocultas em PDFs ou imagens tentando induzir sistemas com Inteligência Artificial a validar boletos falsos. A rota `/api/seguranca/anti-injection` e o pipeline de `/api/auditar` aplicam um filtro canário que identifica padrões como `[SYSTEM]`, `ignore previous instructions` e caracteres invisíveis de esteganografia (`zero-width`), retornando o código de erro `PROMPT_INJECTION_DETECTADO` antes de qualquer processamento.
+
+---
+
+## 🛡️ Rate Limiting & Licença
 
 - **Plano Gratuito:** até 60 req/min por isolate de borda.
 - **Plano Pro / Enterprise (`x-api-key`):** até 300 req/min.
 - Para alto volume de processamento (conciliação/contas a pagar), utilize a rota de lote (`/api/boleto/lote`) para validar até 50 boletos por requisição.
 - O contador em memória do Worker é local por isolate e não representa uma cota diária global centralizada.
 
----
-
-## 📄 Licença
-
-Distribuído sob termos proprietários. Veja `LICENSE` para mais detalhes.
-
-Copyright (c) 2026 clepta2
+Distributed under MIT / Proprietary API Portal Terms. Copyright (c) 2026 clepta2.

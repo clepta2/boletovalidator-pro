@@ -525,29 +525,52 @@
               <div>Zoom Máx: <span id="teleCamZoom" style="color: var(--text);">—</span></div>
             </div>
           </div>
+
+          <!-- Card de Inspeção do Hardware Real do Dispositivo Conectado -->
+          <div id="deviceHardwareBox" style="margin-top: 0.75rem; background: #0b1120; border: 1px solid var(--card-border); border-radius: 8px; padding: 0.75rem; font-size: 0.78rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+              <strong style="color: #38bdf8;">💻 Inspeção de Hardware Real (Seu Dispositivo Atual)</strong>
+              <span id="badgeDeviceType" class="badge green" style="font-size: 0.65rem;">Detectando...</span>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem; font-family: var(--mono); color: var(--text-muted);">
+              <div>Tipo Físico: <span id="hwTipo" style="color: var(--text);">—</span></div>
+              <div>Processador: <span id="hwCpu" style="color: var(--text);">—</span></div>
+              <div>Memória RAM: <span id="hwRam" style="color: var(--text);">—</span></div>
+              <div>Tela: <span id="hwScreen" style="color: var(--text);">—</span></div>
+              <div style="grid-column: span 2;">Placa de Vídeo (GPU): <span id="hwGpu" style="color: #38bdf8;">—</span></div>
+            </div>
+          </div>
         </div>
 
         <!-- ABA 3: FOTO OU PDF -->
         <div class="tab-content" id="tab-arquivo">
-          <div style="border: 2px dashed var(--card-border); border-radius: 10px; padding: 2rem 1rem; text-align: center; background: #0f172a;">
+          <div style="border: 2px dashed var(--card-border); border-radius: 10px; padding: 1.5rem 1rem; text-align: center; background: #0f172a;">
             <input type="file" id="inputFile" accept="image/*,.pdf" capture="environment" style="display: none;" />
-            <p style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.5rem;">Fotografar ou Selecionar Boleto (PDF/Foto)</p>
-            <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 1rem;">Processamento 100% no seu navegador antes do envio</p>
+            <p style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.35rem;">Fotografar ou Selecionar Boleto (PDF/Foto)</p>
+            <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.75rem;">Processamento forense 100% no seu navegador antes do envio</p>
             <button class="btn btn-primary" onclick="document.getElementById('inputFile').click()">📸 Tirar Foto / Escolher Arquivo</button>
-            <div id="fileInfo" style="margin-top: 0.75rem; font-size: 0.8rem; font-family: var(--mono); color: #60a5fa;"></div>
+            <div id="fileInfo" style="margin-top: 0.5rem; font-size: 0.8rem; font-family: var(--mono); color: #60a5fa;"></div>
+
+            <!-- Botões de Amostra para Testar Forense de Imagem -->
+            <div style="margin-top: 0.75rem; display: flex; gap: 0.4rem; justify-content: center; flex-wrap: wrap;">
+              <button class="btn btn-secondary btn-sm" id="btnAmostraFotoReal" type="button">📸 Amostra: Foto Câmera Real</button>
+              <button class="btn btn-secondary btn-sm" id="btnAmostraScreenshot" type="button">🖥️ Amostra: Print/Screenshot</button>
+              <button class="btn btn-secondary btn-sm" id="btnAmostraPhotoshop" type="button" style="color:#f87171;">🚨 Amostra: Editado no Photoshop</button>
+            </div>
 
             <!-- Metadados Forenses da Câmera (EXIF) -->
             <div id="exifTelemetryBox" style="display: none; margin-top: 0.75rem; background: #0b1120; border: 1px solid var(--card-border); border-radius: 8px; padding: 0.75rem; font-size: 0.78rem; text-align: left;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
-                <strong style="color: #a78bfa;">📸 Dados Forenses da Foto (Câmera de Origem)</strong>
-                <span id="badgeExifStatus" class="badge" style="font-size: 0.65rem;">Câmera Original</span>
+                <strong style="color: #a78bfa;">📸 Dados Forenses da Imagem (Câmera de Origem)</strong>
+                <span id="badgeExifStatus" class="badge" style="font-size: 0.65rem;">—</span>
               </div>
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem; font-family: var(--mono); color: var(--text-muted);">
-                <div>Aparelho: <span id="exifModel" style="color: var(--text);">—</span></div>
+                <div>Aparelho / Modelo: <span id="exifModel" style="color: var(--text);">—</span></div>
                 <div>Fabricante: <span id="exifMake" style="color: var(--text);">—</span></div>
-                <div>Data Original: <span id="exifDate" style="color: var(--text);">—</span></div>
-                <div>Software/Editor: <span id="exifSoftware" style="color: var(--text);">—</span></div>
+                <div>Data/Hora Original: <span id="exifDate" style="color: var(--text);">—</span></div>
+                <div>Software Gerador: <span id="exifSoftware" style="color: var(--text);">—</span></div>
               </div>
+              <div id="exifAlertaForense" style="display:none; margin-top:0.35rem; color:#fca5a5; font-size:0.75rem; background:rgba(239,68,68,0.15); padding:0.35rem 0.5rem; border-radius:4px;"></div>
             </div>
           </div>
         </div>
@@ -1217,6 +1240,97 @@
         } catch (_) {}
       }
       alert('Arquivo carregado. Para análise forense completa, clique em "Executar Auditoria Forense".');
+    });
+
+    // ─── DETECÇÃO DINÂMICA DE HARDWARE REAL DO DISPOSITIVO ATUAL ───────────
+    function detectarHardwareReal() {
+      const hwTipo = document.getElementById('hwTipo');
+      const hwCpu = document.getElementById('hwCpu');
+      const hwRam = document.getElementById('hwRam');
+      const hwScreen = document.getElementById('hwScreen');
+      const hwGpu = document.getElementById('hwGpu');
+      const badge = document.getElementById('badgeDeviceType');
+
+      const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+      const isTablet = /iPad|Tablet/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && screen.width >= 768 && screen.width <= 1024);
+      const tipo = isTablet ? 'Tablet' : (isMobile ? 'Smartphone / Mobile' : 'Computador / Notebook Desktop');
+
+      if (hwTipo) hwTipo.textContent = tipo;
+      if (badge) {
+        badge.textContent = isMobile ? 'Dispositivo Mobile' : 'Notebook / Desktop';
+        badge.className = isMobile ? 'badge purple' : 'badge green';
+      }
+      if (hwCpu) hwCpu.textContent = `${navigator.hardwareConcurrency || 'N/A'} Núcleos Lógicos`;
+      if (hwRam) hwRam.textContent = navigator.deviceMemory ? `${navigator.deviceMemory} GB RAM` : 'Padrão do Sistema';
+      if (hwScreen) hwScreen.textContent = `${screen.width} x ${screen.height} (Pixel Ratio: ${window.devicePixelRatio || 1}x)`;
+
+      // Placa de vídeo real (GPU Renderer) via WebGL
+      try {
+        const canvas = document.createElement('canvas');
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        if (gl) {
+          const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+          if (dbg) {
+            const rend = gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL);
+            if (hwGpu) hwGpu.textContent = rend || 'GPU Padrão';
+          }
+        }
+      } catch (_) {
+        if (hwGpu) hwGpu.textContent = 'Acelerador Gráfico Nativo';
+      }
+    }
+
+    // Executa detecção de hardware imediatamente
+    detectarHardwareReal();
+
+    // ─── BOTÕES DE AMOSTRA FORENSE DE IMAGENS / CÂMERAS ────────────────────
+    const exifBox = document.getElementById('exifTelemetryBox');
+    const badgeExif = document.getElementById('badgeExifStatus');
+    const alertaForense = document.getElementById('exifAlertaForense');
+
+    document.getElementById('btnAmostraFotoReal').addEventListener('click', () => {
+      exifBox.style.display = 'block';
+      badgeExif.textContent = '📸 Câmera Original';
+      badgeExif.style.background = 'rgba(16, 185, 129, 0.15)';
+      badgeExif.style.color = '#34d399';
+      document.getElementById('exifModel').textContent = 'Samsung Galaxy S24 Ultra (SM-S928B)';
+      document.getElementById('exifMake').textContent = 'Samsung Electronics';
+      document.getElementById('exifDate').textContent = '2026-11-14 04:18:22 (Fuso Local)';
+      document.getElementById('exifSoftware').textContent = 'S928BXXU1AXB5 (Câmera Nativa OneUI)';
+      alertaForense.style.display = 'block';
+      alertaForense.style.background = 'rgba(16, 185, 129, 0.12)';
+      alertaForense.style.color = '#34d399';
+      alertaForense.innerHTML = '✅ <strong>Perícia Autêntica:</strong> Imagem com assinatura completa de sensor óptico original, sem vestígios de edição digital.';
+    });
+
+    document.getElementById('btnAmostraScreenshot').addEventListener('click', () => {
+      exifBox.style.display = 'block';
+      badgeExif.textContent = '🖥️ Captura de Tela';
+      badgeExif.style.background = 'rgba(245, 158, 11, 0.15)';
+      badgeExif.style.color = '#fbbf24';
+      document.getElementById('exifModel').textContent = 'Sem sensor óptico (Print de Tela)';
+      document.getElementById('exifMake').textContent = 'Sistema Operacional / Desktop';
+      document.getElementById('exifDate').textContent = 'Não gravado pelo sistema';
+      document.getElementById('exifSoftware').textContent = 'Snipping Tool / Screenshot Service';
+      alertaForense.style.display = 'block';
+      alertaForense.style.background = 'rgba(245, 158, 11, 0.12)';
+      alertaForense.style.color = '#fbbf24';
+      alertaForense.innerHTML = '⚠️ <strong>Aviso Forense:</strong> O arquivo não foi fotografado fisicamente, trata-se de um print ou imagem digital sem dados de câmera.';
+    });
+
+    document.getElementById('btnAmostraPhotoshop').addEventListener('click', () => {
+      exifBox.style.display = 'block';
+      badgeExif.textContent = '🚨 Adulterado em Editor';
+      badgeExif.style.background = 'rgba(239, 68, 68, 0.2)';
+      badgeExif.style.color = '#f87171';
+      document.getElementById('exifModel').textContent = 'Arquivo Reexportado';
+      document.getElementById('exifMake').textContent = 'Software Gráfico';
+      document.getElementById('exifDate').textContent = 'Modificado recentemente';
+      document.getElementById('exifSoftware').textContent = 'Adobe Photoshop 2025 (Windows)';
+      alertaForense.style.display = 'block';
+      alertaForense.style.background = 'rgba(239, 68, 68, 0.15)';
+      alertaForense.style.color = '#f87171';
+      alertaForense.innerHTML = '🚨 <strong>ALERTA DE FRAUDE:</strong> Metadados confirmam reprocessamento por software gráfico (Photoshop). Risco de linhas ou códigos sobrepostos!';
     });
 
     window.copiarTexto = function(id) {

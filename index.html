@@ -509,6 +509,22 @@
             <select id="selCamera" class="btn btn-secondary btn-sm" style="display: none; padding: 0.5rem; outline: none; background: #0f172a; color: var(--text); border: 1px solid var(--card-border); border-radius: 8px;">
             </select>
           </div>
+
+          <!-- Card de Telemetria e Dados da Câmera -->
+          <div id="camTelemetryBox" style="display: none; margin-top: 0.75rem; background: #0f172a; border: 1px solid var(--card-border); border-radius: 8px; padding: 0.75rem; font-size: 0.78rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+              <strong style="color: #60a5fa;">📊 Dados Técnicos da Câmera Ativa</strong>
+              <button class="btn btn-secondary btn-sm" id="btnToggleTorch" style="display: none; padding: 2px 8px; font-size: 0.7rem;">🔦 Lanterna</button>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem; font-family: var(--mono); color: var(--text-muted);">
+              <div>Dispositivo: <span id="teleCamLabel" style="color: var(--text);">—</span></div>
+              <div>Resolução: <span id="teleCamRes" style="color: var(--text);">—</span></div>
+              <div>Taxa: <span id="teleCamFps" style="color: var(--text);">—</span></div>
+              <div>Lente: <span id="teleCamFacing" style="color: var(--text);">—</span></div>
+              <div>Foco: <span id="teleCamFocus" style="color: var(--text);">—</span></div>
+              <div>Zoom Máx: <span id="teleCamZoom" style="color: var(--text);">—</span></div>
+            </div>
+          </div>
         </div>
 
         <!-- ABA 3: FOTO OU PDF -->
@@ -519,6 +535,20 @@
             <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 1rem;">Processamento 100% no seu navegador antes do envio</p>
             <button class="btn btn-primary" onclick="document.getElementById('inputFile').click()">📸 Tirar Foto / Escolher Arquivo</button>
             <div id="fileInfo" style="margin-top: 0.75rem; font-size: 0.8rem; font-family: var(--mono); color: #60a5fa;"></div>
+
+            <!-- Metadados Forenses da Câmera (EXIF) -->
+            <div id="exifTelemetryBox" style="display: none; margin-top: 0.75rem; background: #0b1120; border: 1px solid var(--card-border); border-radius: 8px; padding: 0.75rem; font-size: 0.78rem; text-align: left;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                <strong style="color: #a78bfa;">📸 Dados Forenses da Foto (Câmera de Origem)</strong>
+                <span id="badgeExifStatus" class="badge" style="font-size: 0.65rem;">Câmera Original</span>
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem; font-family: var(--mono); color: var(--text-muted);">
+                <div>Aparelho: <span id="exifModel" style="color: var(--text);">—</span></div>
+                <div>Fabricante: <span id="exifMake" style="color: var(--text);">—</span></div>
+                <div>Data Original: <span id="exifDate" style="color: var(--text);">—</span></div>
+                <div>Software/Editor: <span id="exifSoftware" style="color: var(--text);">—</span></div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -984,10 +1014,14 @@
         btnIniciarCam.disabled = true;
         btnPararCam.disabled = false;
 
+        // Extrai dados técnicos da câmera ativa
+        extrairDadosCameraAtiva();
+
         iniciarLeituraFrames();
       } catch (err) {
         camPlaceholder.style.display = 'block';
         scannerOverlay.style.display = 'none';
+        document.getElementById('camTelemetryBox').style.display = 'none';
         atualizarStatusSemCamera('Permissão Negada ou Câmera Ocupada', `Erro ao iniciar vídeo: ${err.message}. Verifique as permissões de câmera do seu navegador.`);
       }
     });
@@ -1005,8 +1039,94 @@
       }
       scannerOverlay.style.display = 'none';
       camPlaceholder.style.display = 'block';
+      document.getElementById('camTelemetryBox').style.display = 'none';
       btnIniciarCam.disabled = !temCameraDisponivel;
       btnPararCam.disabled = true;
+    }
+
+    function extrairDadosCameraAtiva() {
+      if (!videoStream) return;
+      const track = videoStream.getVideoTracks()[0];
+      if (!track) return;
+
+      const settings = track.getSettings ? track.getSettings() : {};
+      const capabilities = track.getCapabilities ? track.getCapabilities() : {};
+
+      document.getElementById('camTelemetryBox').style.display = 'block';
+      document.getElementById('teleCamLabel').textContent = track.label || 'Câmera Principal';
+      document.getElementById('teleCamRes').textContent = `${settings.width || video.videoWidth || '1280'} x ${settings.height || video.videoHeight || '720'}`;
+      document.getElementById('teleCamFps').textContent = settings.frameRate ? `${Math.round(settings.frameRate)} FPS` : '30 FPS';
+      document.getElementById('teleCamFacing').textContent = settings.facingMode === 'user' ? 'Frontal (Selfie)' : 'Traseira (Ambiente)';
+      document.getElementById('teleCamFocus').textContent = capabilities.focusMode ? capabilities.focusMode.join(', ') : 'Automático';
+      document.getElementById('teleCamZoom').textContent = capabilities.zoom ? `${capabilities.zoom.max || 1}x` : '1x';
+
+      // Suporte à Lanterna / Flash (Torch)
+      const btnTorch = document.getElementById('btnToggleTorch');
+      if (capabilities.torch) {
+        btnTorch.style.display = 'inline-block';
+        let torchAtivo = false;
+        btnTorch.onclick = async () => {
+          try {
+            torchAtivo = !torchAtivo;
+            await track.applyConstraints({ advanced: [{ torch: torchAtivo }] });
+            btnTorch.textContent = torchAtivo ? '🔦 Desligar Flash' : '🔦 Lanterna';
+          } catch (_) {}
+        };
+      } else {
+        btnTorch.style.display = 'none';
+      }
+    }
+
+    // ─── PARSER FORENSE DE METADADOS EXIF DA FOTO (SEM DEPENDÊNCIAS) ──────────
+    function extrairMetadadosExif(buffer) {
+      try {
+        const view = new DataView(buffer);
+        if (view.getUint16(0, false) !== 0xFFD8) return null; // Não é JPEG
+        let offset = 2;
+        while (offset < view.byteLength) {
+          const marker = view.getUint16(offset, false);
+          offset += 2;
+          if (marker === 0xFFE1) { // Segmento APP1 (EXIF)
+            const length = view.getUint16(offset, false);
+            offset += 2;
+            const exifHeader = view.getUint32(offset, false);
+            if (exifHeader !== 0x45786966) return null; // 'Exif'
+            offset += 6; // Pula 'Exif\0\0'
+            const tiffOffset = offset;
+            const littleEndian = view.getUint16(offset, false) === 0x4949;
+            offset += 4;
+            const ifdOffset = view.getUint32(offset, littleEndian);
+            offset = tiffOffset + ifdOffset;
+            const numEntries = view.getUint16(offset, littleEndian);
+            offset += 2;
+            const tags = {};
+            for (let i = 0; i < numEntries; i++) {
+              const tag = view.getUint16(offset, littleEndian);
+              const type = view.getUint16(offset + 2, littleEndian);
+              const count = view.getUint32(offset + 4, littleEndian);
+              const valOffset = view.getUint32(offset + 8, littleEndian);
+              offset += 12;
+              if (type === 2) { // String ASCII
+                const strOffset = count > 4 ? tiffOffset + valOffset : (offset - 4);
+                let str = '';
+                for (let j = 0; j < count - 1; j++) {
+                  str += String.fromCharCode(view.getUint8(strOffset + j));
+                }
+                if (tag === 0x010F) tags.make = str.trim();
+                if (tag === 0x0110) tags.model = str.trim();
+                if (tag === 0x0131) tags.software = str.trim();
+                if (tag === 0x9003) tags.dateTimeOriginal = str.trim();
+              }
+            }
+            return tags;
+          } else {
+            if ((marker & 0xFF00) !== 0xFF00) break;
+            const length = view.getUint16(offset, false);
+            offset += length;
+          }
+        }
+      } catch (_) {}
+      return null;
     }
 
     function iniciarLeituraFrames() {
@@ -1038,12 +1158,48 @@
       }, 350);
     }
 
-    // Leitura de Arquivo Local
+    // Leitura de Arquivo Local com Análise Forense de Câmera/EXIF
     document.getElementById('inputFile').addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
       document.getElementById('fileInfo').textContent = `Arquivo carregado: ${file.name} (${Math.round(file.size / 1024)} KB)`;
       
+      const exifBox = document.getElementById('exifTelemetryBox');
+      const badgeExif = document.getElementById('badgeExifStatus');
+
+      // Análise Forense de Imagem (Câmera de Origem)
+      if (file.type.startsWith('image/')) {
+        try {
+          const buf = await file.arrayBuffer();
+          const exif = extrairMetadadosExif(buf);
+          if (exif && (exif.model || exif.make || exif.software)) {
+            exifBox.style.display = 'block';
+            document.getElementById('exifModel').textContent = exif.model || 'Desconhecido';
+            document.getElementById('exifMake').textContent = exif.make || 'Desconhecido';
+            document.getElementById('exifDate').textContent = exif.dateTimeOriginal || 'Não informado';
+            document.getElementById('exifSoftware').textContent = exif.software || 'Câmera Nativa do Aparelho';
+
+            const softLow = (exif.software || '').toLowerCase();
+            const editado = softLow.includes('photoshop') || softLow.includes('canva') || softLow.includes('gimp') || softLow.includes('paint');
+            if (editado) {
+              badgeExif.textContent = '⚠️ Editado em Software Gráfico';
+              badgeExif.style.background = 'rgba(239, 68, 68, 0.2)';
+              badgeExif.style.color = '#f87171';
+            } else {
+              badgeExif.textContent = '📸 Câmera Original';
+              badgeExif.style.background = 'rgba(16, 185, 129, 0.15)';
+              badgeExif.style.color = '#34d399';
+            }
+          } else {
+            exifBox.style.display = 'none';
+          }
+        } catch (_) {
+          exifBox.style.display = 'none';
+        }
+      } else {
+        exifBox.style.display = 'none';
+      }
+
       // Se tiver BarcodeDetector e for imagem, processa localmente
       if ('BarcodeDetector' in window && file.type.startsWith('image/')) {
         try {

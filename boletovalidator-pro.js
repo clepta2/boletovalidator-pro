@@ -65,7 +65,7 @@ export class BoletoValidatorPro {
    * @param {string} [options.apiKey] - Chave da API (se aplicável para cotas comerciais)
    */
   constructor(options = {}) {
-    this.endpoint = options.endpoint || 'https://ponte.ozpro.com.br';
+    this.endpoint = options.endpoint || 'https://boletovalidator-pro-api.maputo3.workers.dev';
     this.apiKey = options.apiKey || '';
   }
 
@@ -766,5 +766,511 @@ export class BoletoValidatorPro {
     return await res.json();
   }
 }
+
+// ─── EXPORTAÇÕES MODULARES STANDALONE ─────────────────────────────────────
+export {
+  BANCOS_BRASIL,
+  SEGMENTOS_CONCESSIONARIA
+};
+
+export function limpar(input) {
+  return BoletoValidatorPro.limpar(input);
+}
+
+export function formatar(raw) {
+  return BoletoValidatorPro.formatar(raw);
+}
+
+export function modulo10(bloco) {
+  return BoletoValidatorPro.modulo10(bloco);
+}
+
+export function modulo11Bancario(bloco) {
+  return BoletoValidatorPro.modulo11Bancario(bloco);
+}
+
+export function modulo11Concessionaria(bloco) {
+  return BoletoValidatorPro.modulo11Concessionaria(bloco);
+}
+
+export function fatorParaData(fatorStr) {
+  return BoletoValidatorPro.fatorParaData(fatorStr);
+}
+
+export function dataParaFator(dataStr) {
+  return BoletoValidatorPro.dataParaFator(dataStr);
+}
+
+export function decodificarCampoLivre(banco, campoLivre) {
+  return BoletoValidatorPro.decodificarCampoLivre(banco, campoLivre);
+}
+
+export function simularEncargosAtraso(valorNominal, diasAtraso, percentualMulta, taxaJurosMes) {
+  return BoletoValidatorPro.simularEncargosAtraso(valorNominal, diasAtraso, percentualMulta, taxaJurosMes);
+}
+
+export function gerarBoleto(params) {
+  return BoletoValidatorPro.gerarBoleto(params);
+}
+
+export function linhaParaCodigoBarras(linha) {
+  return BoletoValidatorPro.linhaParaCodigoBarras(linha);
+}
+
+export function linhaParaCodigoBarrasConcessionaria(linha) {
+  return BoletoValidatorPro.linhaParaCodigoBarrasConcessionaria(linha);
+}
+
+export function codigoBarrasParaLinhaDigitavel(barcode) {
+  return BoletoValidatorPro.codigoBarrasParaLinhaDigitavel(barcode);
+}
+
+export function calcularStatusVencimento(isoDateStr) {
+  return BoletoValidatorPro.calcularStatusVencimento(isoDateStr);
+}
+
+export function gerarBarcodeSvg(code44, height) {
+  return BoletoValidatorPro.gerarBarcodeSvg(code44, height);
+}
+
+export function extrairDeTexto(texto) {
+  return BoletoValidatorPro.extrairDeTexto(texto);
+}
+
+export function validarLocal(rawInput) {
+  return BoletoValidatorPro.validarLocal(rawInput);
+}
+
+export function validarBoleto(rawInput) {
+  return BoletoValidatorPro.validarLocal(rawInput);
+}
+
+// ─── MICRO-FUNÇÕES: CPF / CNPJ ──────────────────────────────────────────────
+export function validarCpf(cpf) {
+  if (!cpf) return false;
+  const limpo = String(cpf).replace(/\D/g, '');
+  if (limpo.length !== 11 || /^(\d)\1{10}$/.test(limpo)) return false;
+  let soma = 0;
+  for (let i = 0; i < 9; i++) soma += parseInt(limpo.charAt(i), 10) * (10 - i);
+  let resto = (soma * 10) % 11;
+  if (resto === 10 || resto === 11) resto = 0;
+  if (resto !== parseInt(limpo.charAt(9), 10)) return false;
+  soma = 0;
+  for (let i = 0; i < 10; i++) soma += parseInt(limpo.charAt(i), 10) * (11 - i);
+  resto = (soma * 10) % 11;
+  if (resto === 10 || resto === 11) resto = 0;
+  return resto === parseInt(limpo.charAt(10), 10);
+}
+
+export function validarCnpj(cnpj) {
+  if (!cnpj) return false;
+  const limpo = String(cnpj).replace(/\D/g, '');
+  if (limpo.length !== 14 || /^(\d)\1{13}$/.test(limpo)) return false;
+  let tamanho = 12;
+  let numeros = limpo.substring(0, tamanho);
+  let digitos = limpo.substring(tamanho);
+  let soma = 0;
+  let pos = tamanho - 7;
+  for (let i = tamanho; i >= 1; i--) {
+    soma += parseInt(numeros.charAt(tamanho - i), 10) * pos--;
+    if (pos < 2) pos = 9;
+  }
+  let resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11);
+  if (resultado !== parseInt(digitos.charAt(0), 10)) return false;
+  tamanho = 13;
+  numeros = limpo.substring(0, tamanho);
+  soma = 0;
+  pos = tamanho - 7;
+  for (let i = tamanho; i >= 1; i--) {
+    soma += parseInt(numeros.charAt(tamanho - i), 10) * pos--;
+    if (pos < 2) pos = 9;
+  }
+  resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11);
+  return resultado === parseInt(digitos.charAt(1), 10);
+}
+
+// ─── MICRO-FUNÇÃO: DETECTOR DE PROMPT INJECTION ──────────────────────────────
+const INJECTION_PATTERNS = [
+  { regex: /ignore\s+(all\s+|any\s+)?(previous|prior|earlier|above)\s+(instructions|prompts|directives|commands)/i, motivo: 'Tentativa de reset/ignorar instruções do sistema' },
+  { regex: /disregard\s+(all\s+|any\s+)?(previous|prior|earlier)\s+(instructions|prompts)/i, motivo: 'Tentativa de desconsiderar regras de segurança' },
+  { regex: /forget\s+(all\s+)?(previous|prior)\s+instructions/i, motivo: 'Tentativa de reset de memória/instruções' },
+  { regex: /you\s+are\s+now\s+(an?\s+)?(unrestricted|jailbreak|developer|dan|root|admin)/i, motivo: 'Tentativa de troca de persona/jailbreak' },
+  { regex: /act\s+as\s+(an?\s+)?(unrestricted|jailbreak|developer|dan|root)/i, motivo: 'Tentativa de emulação de papel não autorizado' },
+  { regex: /\[system\]|<\|im_start\|>|<\|system\|>|system:\s*always|assistant:\s*\{/i, motivo: 'Injeção de tags de controle de sistema de LLM' },
+  { regex: /always\s+(return|classify|respond|output)\s+.*(valid|genuine|true|legit)/i, motivo: 'Tentativa de coerção de resposta positiva' },
+  { regex: /override\s+(verification|security|validation|rules)/i, motivo: 'Tentativa explícita de override de segurança' },
+  { regex: /output\s+only\s*:\s*\{.*valido.*true/i, motivo: 'Injeção forçada de formato de saída fraudulento' }
+];
+
+export function detectarPromptInjection(texto) {
+  if (!texto || typeof texto !== 'string') {
+    return { seguro: true, detectado: false };
+  }
+
+  // Verifica excesso de caracteres invisíveis / zero-width
+  const zeroWidthCount = (texto.match(/[\u200B-\u200D\uFEFF]/g) || []).length;
+  if (zeroWidthCount > 10) {
+    return {
+      seguro: false,
+      detectado: true,
+      severidade: 'CRITICA',
+      codigo: 'PROMPT_INJECTION_DETECTADO',
+      motivo: 'Documento contém caracteres invisíveis ocultos (Zero-Width Steganography)',
+      padraoSuspeito: `${zeroWidthCount} caracteres invisíveis detectados`,
+      trecho: 'Unicode Zero-Width Range'
+    };
+  }
+
+  for (const item of INJECTION_PATTERNS) {
+    const match = texto.match(item.regex);
+    if (match) {
+      return {
+        seguro: false,
+        detectado: true,
+        severidade: 'CRITICA',
+        codigo: 'PROMPT_INJECTION_DETECTADO',
+        motivo: item.motivo,
+        padraoSuspeito: match[0],
+        trecho: texto.slice(Math.max(0, match.index - 20), Math.min(texto.length, match.index + match[0].length + 20))
+      };
+    }
+  }
+
+  return { seguro: true, detectado: false };
+}
+
+// ─── MICRO-FUNÇÃO: PARSER E COMPARADOR PIX ─────────────────────────────────
+export function calcularCrc16Pix(payload) {
+  if (!payload || typeof payload !== 'string') return '';
+  let crc = 0xFFFF;
+  for (let i = 0; i < payload.length; i++) {
+    crc ^= (payload.charCodeAt(i) << 8);
+    for (let j = 0; j < 8; j++) {
+      if ((crc & 0x8000) !== 0) {
+        crc = ((crc << 1) ^ 0x1021) & 0xFFFF;
+      } else {
+        crc = (crc << 1) & 0xFFFF;
+      }
+    }
+  }
+  return crc.toString(16).toUpperCase().padStart(4, '0');
+}
+
+export function parseTlvPix(rawString) {
+  const list = [];
+  if (!rawString || typeof rawString !== 'string') return list;
+  let index = 0;
+  const maxSafe = rawString.length;
+  while (index + 4 <= maxSafe) {
+    const tag = rawString.substring(index, index + 2);
+    const lenStr = rawString.substring(index + 2, index + 4);
+    const length = parseInt(lenStr, 10);
+    if (isNaN(length) || length < 0 || index + 4 + length > maxSafe) break;
+    index += 4;
+    const value = rawString.substring(index, index + length);
+    list.push({ tag, length, value });
+    index += length;
+  }
+  return list;
+}
+
+export function decodificarPix(payload) {
+  if (!payload || typeof payload !== 'string') {
+    return { ok: false, valido: false, erro: 'Payload Pix não informado' };
+  }
+  const raw = payload.trim();
+  if (!raw.startsWith('000201')) {
+    return { ok: false, valido: false, erro: 'Payload não inicia com padrão EMVCo (000201)' };
+  }
+  const crcMatch = raw.match(/6304([A-Fa-f0-9]{4})$/);
+  if (!crcMatch) {
+    return { ok: false, valido: false, erro: 'Tag 63 de CRC16 ausente ou mal formatada' };
+  }
+  const crcEsperado = crcMatch[1].toUpperCase();
+  const payloadSemCrc = raw.substring(0, raw.length - 4);
+  const crcCalculado = calcularCrc16Pix(payloadSemCrc);
+  const crcValido = (crcEsperado === crcCalculado);
+
+  const tags = parseTlvPix(raw);
+  const tagMap = new Map();
+  tags.forEach(t => tagMap.set(t.tag, t.value));
+
+  let chavePix = '';
+  let infoAdicional = '';
+  let urlPayload = null;
+  const tag26 = tagMap.get('26');
+  if (tag26) {
+    const subTags = parseTlvPix(tag26);
+    subTags.forEach(st => {
+      if (st.tag === '01') chavePix = st.value;
+      if (st.tag === '02') infoAdicional = st.value;
+      if (st.tag === '25') urlPayload = st.value;
+    });
+  }
+
+  let valor = null;
+  const tagValor = tagMap.get('54');
+  if (tagValor) {
+    const parsed = parseFloat(tagValor);
+    if (!isNaN(parsed)) valor = parsed;
+  }
+
+  const nomeRecebedor = tagMap.get('59') || '';
+  const cidadeRecebedor = tagMap.get('60') || '';
+
+  return {
+    ok: true,
+    valido: crcValido,
+    crcValido,
+    chavePix: chavePix || urlPayload || '',
+    nomeRecebedor,
+    cidade: cidadeRecebedor,
+    valor,
+    valorFormatado: valor !== null ? `R$ ${valor.toFixed(2).replace('.', ',')}` : 'Valor em aberto',
+    infoAdicional,
+    txid: tagMap.get('62') || ''
+  };
+}
+
+export function compararBoletoPix(dadosBoleto, payloadPix, beneficiarioEsperado = '') {
+  if (!payloadPix) {
+    return { compativel: false, divergencias: ['Nenhum payload Pix informado para comparação'] };
+  }
+  const pix = decodificarPix(payloadPix);
+  if (!pix.valido) {
+    return {
+      compativel: false,
+      divergencias: [`Payload Pix inválido ou com CRC16 corrompido: ${pix.erro || 'Falha de integridade'}`],
+      pix
+    };
+  }
+
+  const divergencias = [];
+  let scoreHarmonia = 100;
+
+  // 1. Checa valor se ambos tiverem valor definido
+  if (dadosBoleto && dadosBoleto.valor > 0 && pix.valor !== null && pix.valor > 0) {
+    if (Math.abs(dadosBoleto.valor - pix.valor) > 0.01) {
+      divergencias.push(`Valor do Pix (R$ ${pix.valor.toFixed(2)}) difere do valor do Boleto (R$ ${dadosBoleto.valor.toFixed(2)})`);
+      scoreHarmonia -= 50;
+    }
+  }
+
+  // 2. Checa nome do beneficiário
+  const nomeBen = (beneficiarioEsperado || dadosBoleto?.beneficiario || '').trim().toLowerCase();
+  const nomePix = (pix.nomeRecebedor || '').trim().toLowerCase();
+
+  if (nomeBen && nomePix) {
+    const norm = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+    const n1 = norm(nomeBen);
+    const n2 = norm(nomePix);
+
+    const matchParcial = n1.includes(n2) || n2.includes(n1) || (n1.slice(0, 8) === n2.slice(0, 8));
+    if (!matchParcial) {
+      divergencias.push(`Nome do recebedor Pix ("${pix.nomeRecebedor}") não confere com o Beneficiário impresso ("${beneficiarioEsperado || dadosBoleto?.beneficiario}")`);
+      scoreHarmonia -= 40;
+    }
+  }
+
+  return {
+    compativel: divergencias.length === 0,
+    scoreHarmonia: Math.max(0, scoreHarmonia),
+    divergencias,
+    pix: {
+      nomeRecebedor: pix.nomeRecebedor,
+      cidade: pix.cidade,
+      valor: pix.valor,
+      valorFormatado: pix.valorFormatado,
+      chavePix: pix.chavePix,
+      crcValido: pix.crcValido
+    }
+  };
+}
+
+// ─── MICRO-FUNÇÃO: LAUDO DE AUDITORIA FORENSE ──────────────────────────────
+export function auditarBoleto(params) {
+  const p = typeof params === 'string' ? { boleto: params } : (params || {});
+  const boletoInput = p.boleto || p.linhaDigitavel || p.codigoBarras || '';
+  const textoDoc = p.textoDocumento || p.texto || '';
+
+  // 1. Filtro Canário Anti-Prompt Injection
+  const checagemTexto = detectarPromptInjection(textoDoc);
+  if (!checagemTexto.seguro) {
+    return {
+      ok: false,
+      valido: false,
+      status: 'ALERTA_DE_SEGURANCA',
+      codigo: 'PROMPT_INJECTION_DETECTADO',
+      scoreSeguranca: 0,
+      scoreRisco: 100,
+      seguro: false,
+      motivo: checagemTexto.motivo,
+      detalhesSeguranca: checagemTexto,
+      alertas: [`Ataque de Prompt Injection detectado no documento: ${checagemTexto.motivo}`],
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  // Checa também campos de texto informados
+  const outrosTextos = [p.beneficiarioImpresso, p.pagadorImpresso].filter(Boolean).join(' ');
+  const checagemCampos = detectarPromptInjection(outrosTextos);
+  if (!checagemCampos.seguro) {
+    return {
+      ok: false,
+      valido: false,
+      status: 'ALERTA_DE_SEGURANCA',
+      codigo: 'PROMPT_INJECTION_DETECTADO',
+      scoreSeguranca: 0,
+      scoreRisco: 100,
+      seguro: false,
+      motivo: checagemCampos.motivo,
+      detalhesSeguranca: checagemCampos,
+      alertas: [`Ataque de Prompt Injection em campos de entrada: ${checagemCampos.motivo}`],
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  // 2. Validação Matemática FEBRABAN
+  const validacao = BoletoValidatorPro.validarLocal(boletoInput);
+  if (!validacao.valido) {
+    return {
+      ok: false,
+      valido: false,
+      status: 'ALERTA_FRAUDE',
+      codigo: 'BOLETO_MATEMATICAMENTE_INVALIDO',
+      scoreSeguranca: 0,
+      scoreRisco: 100,
+      seguro: false,
+      motivo: validacao.motivo,
+      validacao,
+      alertas: [`Boleto inválido: ${validacao.motivo}`],
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  const alertas = [];
+  let scoreRisco = 0;
+  const checagens = {
+    modulo10e11Validos: true,
+    codigoBarrasBateComLinha: true,
+    valorConsistente: true,
+    vencimentoConsistente: true,
+    pixConsistenteComBoleto: null,
+    semInjecaoDetectada: true,
+    cnpjBeneficiarioValido: null
+  };
+
+  // 3. Checagem Código de Barras Visual vs Linha
+  if (p.codigoBarrasVisual) {
+    const barrasVisuaisLimpo = BoletoValidatorPro.limpar(p.codigoBarrasVisual);
+    if (barrasVisuaisLimpo.length === 44 && barrasVisuaisLimpo !== validacao.codigoBarras) {
+      checagens.codigoBarrasBateComLinha = false;
+      scoreRisco += 60;
+      alertas.push(`Linha digitável (${validacao.codigoBarras}) não corresponde às barras impressas no documento (${barrasVisuaisLimpo}) - Forte sinal de adulteração de linha!`);
+    }
+  }
+
+  // 4. Checagem Valor Impresso vs Valor da Linha
+  if (p.valorImpresso !== undefined && p.valorImpresso !== null) {
+    const vImp = typeof p.valorImpresso === 'string' ? parseFloat(p.valorImpresso.replace(/[^\d.,]/g, '').replace(',', '.')) : Number(p.valorImpresso);
+    if (!isNaN(vImp) && validacao.valor > 0) {
+      if (Math.abs(vImp - validacao.valor) > 0.01) {
+        checagens.valorConsistente = false;
+        scoreRisco += 45;
+        alertas.push(`Valor impresso (R$ ${vImp.toFixed(2)}) diverge do valor matemático codificado na linha (R$ ${validacao.valor.toFixed(2)})!`);
+      }
+    }
+  }
+
+  // 5. Checagem Vencimento Impresso vs Vencimento da Linha
+  if (p.vencimentoImpresso && validacao.vencimento) {
+    const vStr = String(p.vencimentoImpresso).trim();
+    if (vStr !== validacao.vencimento.iso && vStr !== validacao.vencimento.formatada) {
+      checagens.vencimentoConsistente = false;
+      scoreRisco += 20;
+      alertas.push(`Vencimento impresso (${vStr}) não bate com a data codificada (${validacao.vencimento.formatada}).`);
+    }
+  }
+
+  // 6. Checagem CPF/CNPJ do Beneficiário
+  if (p.beneficiarioCnpjCpf) {
+    const docLimpo = String(p.beneficiarioCnpjCpf).replace(/\D/g, '');
+    if (docLimpo.length === 11) {
+      const cpfOk = validarCpf(docLimpo);
+      checagens.cnpjBeneficiarioValido = cpfOk;
+      if (!cpfOk) {
+        scoreRisco += 35;
+        alertas.push('CPF do Beneficiário informado no documento possui dígitos verificadores matematicamente inválidos.');
+      }
+    } else if (docLimpo.length === 14) {
+      const cnpjOk = validarCnpj(docLimpo);
+      checagens.cnpjBeneficiarioValido = cnpjOk;
+      if (!cnpjOk) {
+        scoreRisco += 35;
+        alertas.push('CNPJ do Beneficiário informado no documento possui dígitos verificadores matematicamente inválidos.');
+      }
+    }
+  }
+
+  // 7. Checagem Pix Híbrido
+  let dadosPix = null;
+  if (p.payloadPix) {
+    const compPix = compararBoletoPix(validacao, p.payloadPix, p.beneficiarioImpresso);
+    dadosPix = compPix.pix;
+    checagens.pixConsistenteComBoleto = compPix.compativel;
+    if (!compPix.compativel) {
+      scoreRisco += 50;
+      alertas.push(...compPix.divergencias);
+    }
+  }
+
+  // 8. Determina Status e Scores
+  let status = 'INTEGRO_SEM_ADULTERACAO';
+  if (scoreRisco >= 50) {
+    status = 'ALERTA_FRAUDE';
+  } else if (scoreRisco > 0) {
+    status = 'ATENCAO_DIVERGENCIA';
+  }
+
+  const scoreSeguranca = Math.max(0, 100 - scoreRisco);
+
+  return {
+    ok: true,
+    valido: true,
+    status,
+    scoreSeguranca,
+    scoreRisco,
+    seguro: scoreSeguranca >= 80,
+    tipo: validacao.tipo,
+    banco: validacao.banco,
+    valor: validacao.valor,
+    valorFormatado: validacao.valorFormatado,
+    vencimento: validacao.vencimento,
+    statusVencimento: validacao.statusVencimento,
+    linhaDigitavel: validacao.linhaDigitavel,
+    linhaDigitavelLimpa: validacao.linhaDigitavelLimpa,
+    codigoBarras: validacao.codigoBarras,
+    barcodeSvg: validacao.barcodeSvg,
+    dadosBancarios: validacao.dadosBancarios,
+    dadosExtraidos: {
+      beneficiarioImpresso: p.beneficiarioImpresso || null,
+      beneficiarioCnpjCpf: p.beneficiarioCnpjCpf || null,
+      pagadorImpresso: p.pagadorImpresso || null,
+      pix: dadosPix
+    },
+    checagens,
+    alertas,
+    timestamp: new Date().toISOString()
+  };
+}
+
+// Vincula métodos novos à classe para manter retrocompatibilidade total
+BoletoValidatorPro.validarCpf = validarCpf;
+BoletoValidatorPro.validarCnpj = validarCnpj;
+BoletoValidatorPro.detectarPromptInjection = detectarPromptInjection;
+BoletoValidatorPro.decodificarPix = decodificarPix;
+BoletoValidatorPro.compararBoletoPix = compararBoletoPix;
+BoletoValidatorPro.auditar = auditarBoleto;
+BoletoValidatorPro.auditarBoleto = auditarBoleto;
 
 export default BoletoValidatorPro;

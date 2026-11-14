@@ -1,9 +1,30 @@
-import BoletoValidatorPro from './boletovalidator-pro.js';
+import BoletoValidatorPro, {
+  validarLocal,
+  decodificarCampoLivre,
+  detectarPromptInjection,
+  decodificarPix,
+  compararBoletoPix,
+  auditarBoleto,
+  gerarBarcodeSvg,
+  gerarBoleto,
+  formatar,
+  limpar
+} from './boletovalidator-pro.js';
+
 /**
- * boletovalidator-worker.js
- * Standalone Cloudflare Worker para boletovalidator-pro-api em maputo3.workers.dev
- * Rate limiter local por isolate; não define cota diária global. Lotes reduzem chamadas.
+ * worker.js ? BoletoValidator Pro API na Borda Cloudflare Anycast
+ * Arquitetura Modular: Micro-fun??es At?micas (<1ms) + Rota Orquestradora de Auditoria Forense
+ * 
+ * @license MIT
+ * @see https://github.com/clepta2/boletovalidator-pro
  */
+
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-api-key',
+  'Access-Control-Max-Age': '86400'
+};
 
 const ipBuckets = new Map();
 
@@ -27,293 +48,30 @@ function checkRateLimit(ipOrKey, limit = 60, windowMs = 60000) {
   return { ok: true, remaining: limit - entry.count, resetAt: entry.resetAt };
 }
 
-const BANCOS_BRASIL = {
-  '001': 'Banco do Brasil S.A.',
-  '003': 'Banco da AmazÃ´nia S.A.',
-  '004': 'Banco do Nordeste do Brasil S.A.',
-  '021': 'BANESTES S.A. Banco do Estado do EspÃ­rito Santo',
-  '033': 'Banco Santander (Brasil) S.A.',
-  '041': 'Banco do Estado do Rio Grande do Sul S.A. (Banrisul)',
-  '047': 'Banco do Estado de Sergipe S.A. (Banese)',
-  '070': 'Banco de BrasÃ­lia S.A. (BRB)',
-  '077': 'Banco Inter S.A.',
-  '104': 'Caixa EconÃ´mica Federal',
-  '197': 'Stone Pagamentos S.A.',
-  '208': 'Banco BTG Pactual S.A.',
-  '212': 'Banco Original S.A.',
-  '218': 'Banco BS2 S.A.',
-  '237': 'Banco Bradesco S.A.',
-  '260': 'Nu Pagamentos S.A. (Nubank)',
-  '290': 'PagSeguro Internet S.A. (PagBank)',
-  '336': 'Banco C6 S.A.',
-  '341': 'ItaÃº Unibanco S.A.',
-  '389': 'Banco Mercantil do Brasil S.A.',
-  '422': 'Banco Safra S.A.',
-  '655': 'Banco Votorantim S.A.',
-  '748': 'Banco Cooperativo Sicredi S.A.',
-  '756': 'Banco Cooperativo do Brasil S.A. (Sicoob)'
-};
-
-const SEGMENTOS_CONCESSIONARIA = {
-  '1': 'Prefeitura / IPTU / Taxas Municipais',
-  '2': 'Saneamento BÃ¡sico / Ãgua e Esgoto',
-  '3': 'Energia ElÃ©trica e GÃ¡s',
-  '4': 'TelecomunicaÃ§Ãµes / Telefonia e Internet',
-  '5': 'ÃrgÃ£os Governamentais / Tributos Federais e Estaduais',
-  '6': 'CarnÃªs e Assemelhados ou Empresas Privadas',
-  '7': 'Multas de TrÃ¢nsito / DETRAN',
-  '9': 'Uso Exclusivo do Banco'
-};
-
-function modulo10(bloco) {
-  let soma = 0;
-  let peso = 2;
-  for (let i = bloco.length - 1; i >= 0; i--) {
-    let res = parseInt(bloco.charAt(i), 10) * peso;
-    if (res > 9) res = Math.floor(res / 10) + (res % 10);
-    soma += res;
-    peso = peso === 2 ? 1 : 2;
-  }
-  const dezenaSuperior = Math.ceil(soma / 10) * 10;
-  return (dezenaSuperior - soma) % 10;
-}
-
-function modulo11Bancario(bloco) {
-  let soma = 0;
-  let peso = 2;
-  for (let i = bloco.length - 1; i >= 0; i--) {
-    soma += parseInt(bloco.charAt(i), 10) * peso;
-    peso = peso < 9 ? peso + 1 : 2;
-  }
-  const resto = soma % 11;
-  const dv = 11 - resto;
-  if (dv === 0 || dv === 10 || dv === 11) return 1;
-  return dv;
-}
-
-function modulo11Concessionaria(bloco) {
-  let soma = 0;
-  let peso = 2;
-  for (let i = bloco.length - 1; i >= 0; i--) {
-    soma += parseInt(bloco.charAt(i), 10) * peso;
-    peso = peso < 9 ? peso + 1 : 2;
-  }
-  const resto = soma % 11;
-  if (resto === 0 || resto === 1) return 0;
-  if (resto === 10) return 1;
-  return 11 - resto;
-}
-
-function fatorParaData(fatorStr) {
-  const fator = parseInt(fatorStr, 10);
-  if (!fator || isNaN(fator) || fator <= 0) return null;
-
-  let dataBase;
-  let diasAcrescer;
-
-  if (fator >= 1000 && fator <= 9999) {
-    const anoAtual = new Date().getFullYear();
-    if (anoAtual >= 2025) {
-      dataBase = new Date(Date.UTC(2025, 1, 22));
-      diasAcrescer = fator - 1000;
-    } else {
-      dataBase = new Date(Date.UTC(1997, 9, 7));
-      diasAcrescer = fator;
+function jsonResponse(data, status = 200, extraHeaders = {}) {
+  return new Response(JSON.stringify(data, null, 2), {
+    status,
+    headers: {
+      'Content-Type': 'application/json; charset=utf-8',
+      ...CORS_HEADERS,
+      ...extraHeaders
     }
-  } else {
-    dataBase = new Date(Date.UTC(1997, 9, 7));
-    diasAcrescer = fator;
-  }
-
-  const dataVenc = new Date(dataBase.getTime() + diasAcrescer * 86400000);
-  const ano = dataVenc.getUTCFullYear();
-  const mes = String(dataVenc.getUTCMonth() + 1).padStart(2, '0');
-  const dia = String(dataVenc.getUTCDate()).padStart(2, '0');
-
-  return {
-    iso: `${ano}-${mes}-${dia}`,
-    formatada: `${dia}/${mes}/${ano}`
-  };
-}
-
-function calcularStatusVencimento(isoDateStr) {
-  if (!isoDateStr) return null;
-  const parts = isoDateStr.split('-');
-  if (parts.length !== 3) return null;
-  const ano = parseInt(parts[0], 10);
-  const mes = parseInt(parts[1], 10) - 1;
-  const dia = parseInt(parts[2], 10);
-
-  const hoje = new Date();
-  const hojeUtc = Date.UTC(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
-  const vencUtc = Date.UTC(ano, mes, dia);
-
-  const diffMs = vencUtc - hojeUtc;
-  const diffDias = Math.round(diffMs / 86400000);
-
-  if (diffDias < 0) {
-    const atraso = Math.abs(diffDias);
-    return { estaVencido: true, diasAtraso: atraso, diasParaVencer: 0, situacao: `Vencido hÃ¡ ${atraso} dia(s)` };
-  }
-  if (diffDias === 0) {
-    return { estaVencido: false, diasAtraso: 0, diasParaVencer: 0, situacao: 'Vence hoje' };
-  }
-  return { estaVencido: false, diasAtraso: 0, diasParaVencer: diffDias, situacao: `A vencer em ${diffDias} dia(s)` };
-}
-
-function gerarBarcodeSvg(codigoBarras) {
-  if (!codigoBarras || codigoBarras.length !== 44) return null;
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 80"><rect width="440" height="80" fill="#ffffff"/><text x="220" y="70" font-family="monospace" font-size="12" text-anchor="middle" fill="#000000">${codigoBarras}</text></svg>`;
-}
-
-function validarBoletoAlgoritmo(rawInput) {
-  if (!rawInput) {
-    return { valido: false, motivo: 'Linha digitÃ¡vel ou cÃ³digo de barras nÃ£o informado.' };
-  }
-
-  const rawStr = String(rawInput).trim();
-  const limpo = rawStr.replace(/\D/g, '');
-
-  if (!limpo) {
-    return { valido: false, informado: rawStr, motivo: 'Entrada nÃ£o contÃ©m dÃ­gitos numÃ©ricos.' };
-  }
-
-  // 1. BOLETO BANCÃRIO (47 DÃGITOS)
-  if (limpo.length === 47) {
-    const c1 = limpo.slice(0, 9);
-    const dv1 = parseInt(limpo.charAt(9), 10);
-    const c2 = limpo.slice(10, 20);
-    const dv2 = parseInt(limpo.charAt(20), 10);
-    const c3 = limpo.slice(21, 31);
-    const dv3 = parseInt(limpo.charAt(31), 10);
-    const dvGeral = parseInt(limpo.charAt(32), 10);
-    const fatorVenc = limpo.slice(33, 37);
-    const valorStr = limpo.slice(37, 47);
-
-    const expDv1 = modulo10(c1);
-    if (dv1 !== expDv1) {
-      return { valido: false, informado: rawStr, blocoComErro: 1, motivo: `DÃ­gito verificador do Bloco 1 invÃ¡lido (esperado: ${expDv1}, recebido: ${dv1})` };
-    }
-
-    const expDv2 = modulo10(c2);
-    if (dv2 !== expDv2) {
-      return { valido: false, informado: rawStr, blocoComErro: 2, motivo: `DÃ­gito verificador do Bloco 2 invÃ¡lido (esperado: ${expDv2}, recebido: ${dv2})` };
-    }
-
-    const expDv3 = modulo10(c3);
-    if (dv3 !== expDv3) {
-      return { valido: false, informado: rawStr, blocoComErro: 3, motivo: `DÃ­gito verificador do Bloco 3 invÃ¡lido (esperado: ${expDv3}, recebido: ${dv3})` };
-    }
-
-    const banco = limpo.slice(0, 3);
-    const moeda = limpo.slice(3, 4);
-    const campoLivre1 = limpo.slice(4, 9);
-    const campoLivre2 = limpo.slice(10, 20);
-    const campoLivre3 = limpo.slice(21, 31);
-    const codigoBarras = `${banco}${moeda}${dvGeral}${fatorVenc}${valorStr}${campoLivre1}${campoLivre2}${campoLivre3}`;
-
-    const blocoSemDvGeral = `${codigoBarras.slice(0, 4)}${codigoBarras.slice(5)}`;
-    const expDvGeral = modulo11Bancario(blocoSemDvGeral);
-
-    if (dvGeral !== expDvGeral) {
-      return { valido: false, informado: rawStr, motivo: `DÃ­gito verificador geral incompatÃ­vel com cÃ³digo de barras (esperado: ${expDvGeral}, recebido: ${dvGeral})` };
-    }
-
-    const nomeBanco = BANCOS_BRASIL[banco] || 'Banco NÃ£o Catalogado / Outros';
-    const vencimento = fatorParaData(fatorVenc);
-    const statusVencimento = vencimento ? calcularStatusVencimento(vencimento.iso) : null;
-    const valorCentavos = parseInt(valorStr, 10);
-    const valorReais = valorCentavos > 0 ? (valorCentavos / 100) : 0;
-
-    return {
-      valido: true,
-      tipo: 'Boleto BancÃ¡rio (CobranÃ§a)',
-      linhaDigitavel: `${limpo.slice(0, 5)}.${limpo.slice(5, 10)} ${limpo.slice(10, 15)}.${limpo.slice(15, 21)} ${limpo.slice(21, 26)}.${limpo.slice(26, 32)} ${limpo.slice(32, 33)} ${limpo.slice(33)}`,
-      linhaDigitavelLimpa: limpo,
-      codigoBarras: codigoBarras,
-      barcodeSvg: gerarBarcodeSvg(codigoBarras),
-      banco: { codigo: banco, nome: nomeBanco },
-      moeda: moeda === '9' ? 'BRL (Real)' : 'Outra Moeda',
-      vencimento: vencimento,
-      statusVencimento: statusVencimento,
-      fatorVencimento: fatorVenc,
-      valor: valorReais,
-      valorFormatado: valorReais > 0 ? `R$ ${valorReais.toFixed(2).replace('.', ',')}` : 'Sem valor nominal preenchido'
-    };
-  }
-
-  // 2. CONCESSIONÃRIA / TRIBUTOS (48 DÃGITOS)
-  if (limpo.length === 48 && limpo.startsWith('8')) {
-    const idSegmento = limpo.charAt(1);
-    const nomeSegmento = SEGMENTOS_CONCESSIONARIA[idSegmento] || 'Outros ServiÃ§os / ConcessionÃ¡rias';
-    const codigoBarras = `${limpo.slice(0, 11)}${limpo.slice(12, 23)}${limpo.slice(24, 35)}${limpo.slice(36, 47)}`;
-    const valorCentavos = parseInt(codigoBarras.slice(4, 15), 10);
-    const valorReais = valorCentavos > 0 ? (valorCentavos / 100) : 0;
-
-    return {
-      valido: true,
-      tipo: 'ConcessionÃ¡ria / Tributo / ArrecadaÃ§Ã£o',
-      linhaDigitavel: `${limpo.slice(0, 11)}-${limpo.slice(11, 12)} ${limpo.slice(12, 23)}-${limpo.slice(23, 24)} ${limpo.slice(24, 35)}-${limpo.slice(35, 36)} ${limpo.slice(36, 47)}-${limpo.slice(47, 48)}`,
-      linhaDigitavelLimpa: limpo,
-      codigoBarras: codigoBarras,
-      barcodeSvg: gerarBarcodeSvg(codigoBarras),
-      segmento: { codigo: idSegmento, descricao: nomeSegmento },
-      valor: valorReais,
-      valorFormatado: valorReais > 0 ? `R$ ${valorReais.toFixed(2).replace('.', ',')}` : 'Valor nÃ£o informado no cÃ³digo'
-    };
-  }
-
-  // 3. CÃDIGO DE BARRAS DE 44 DÃGITOS
-  if (limpo.length === 44) {
-    const codigoBanco = limpo.slice(0, 3);
-    const fatorVenc = limpo.slice(5, 9);
-    const valorCentavos = parseInt(limpo.slice(9, 19), 10);
-    const valorReais = valorCentavos > 0 ? (valorCentavos / 100) : 0;
-    const vencimento = fatorParaData(fatorVenc);
-
-    return {
-      valido: true,
-      tipo: 'CÃ³digo de Barras BancÃ¡rio (44 dÃ­gitos)',
-      codigoBarras: limpo,
-      barcodeSvg: gerarBarcodeSvg(limpo),
-      banco: { codigo: codigoBanco, nome: BANCOS_BRASIL[codigoBanco] || 'Banco NÃ£o Catalogado' },
-      vencimento: vencimento,
-      valor: valorReais,
-      valorFormatado: valorReais > 0 ? `R$ ${valorReais.toFixed(2).replace('.', ',')}` : 'Sem valor'
-    };
-  }
-
-  return {
-    valido: false,
-    informado: rawStr,
-    tamanhoRecebido: limpo.length,
-    motivo: `Quantidade de dÃ­gitos invÃ¡lida: esperado 47 (bancÃ¡rio), 48 (concessionÃ¡ria) ou 44 (cÃ³digo de barras). Recebido: ${limpo.length}`
-  };
+  });
 }
 
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    const pathname = url.pathname.replace(/\/$/, '');
+    const pathname = url.pathname.replace(/\/$/, '') || '/';
 
+    // 1. Preflight CORS
     if (request.method === 'OPTIONS') {
-      return new Response(null, {
-        status: 204,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-api-key',
-          'Access-Control-Max-Age': '86400'
-        }
-      });
+      return new Response(null, { status: 204, headers: CORS_HEADERS });
     }
 
-    // 1. Blindagem HTTP (Apenas GET e POST)
+    // 2. Blindagem de M?todos HTTP
     if (request.method !== 'GET' && request.method !== 'POST') {
-      return new Response(JSON.stringify({ ok: false, error: 'Método não permitido.' }), {
-        status: 405,
-        headers: { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' }
-      });
+      return jsonResponse({ ok: false, error: 'M?todo n?o permitido. Utilize GET ou POST.' }, 405);
     }
 
     let bodyJson = null;
@@ -323,83 +81,259 @@ export default {
       } catch (_) {}
     }
 
-    // 2. Rate Limiting: contador local por isolate
+    // 3. Autentica??o e Rate Limit
     const apiKey = request.headers.get('x-api-key') ||
                    request.headers.get('Authorization')?.replace(/^Bearer\s+/i, '') ||
                    url.searchParams.get('api_key') ||
                    url.searchParams.get('key') || '';
-    const isPro = String(apiKey).trim().length >= 16;
-    const clientIp = request.headers.get('CF-Connecting-IP') || request.headers.get('x-real-ip') || '127.0.0.1';
-    const maxReqs = isPro ? 300 : 60;
-    const rl = checkRateLimit(isPro ? apiKey : clientIp, maxReqs, 60000);
+    const cleanKey = String(apiKey).trim();
+    const isDemo = url.searchParams.get('demo') === 'true' || cleanKey.toLowerCase() === 'demo' || cleanKey.toLowerCase() === 'sandbox';
+    const isCommercial = Boolean(
+      cleanKey && (
+        cleanKey.startsWith('bol_live_') || 
+        cleanKey.startsWith('bol_pro_') || 
+        cleanKey.startsWith('bol_master_') || 
+        cleanKey.startsWith('pnt_live_') ||
+        (env && (env.API_KEY === cleanKey || env.PRO_KEY === cleanKey))
+      ) && cleanKey.length >= 16
+    );
 
-    if (!rl.ok && pathname !== '/health' && pathname !== '/status' && pathname !== '') {
-      return new Response(JSON.stringify({
+    const clientIp = request.headers.get('CF-Connecting-IP') || request.headers.get('x-real-ip') || '127.0.0.1';
+    const maxReqs = isCommercial ? 300 : 60;
+    const rl = checkRateLimit(isCommercial ? cleanKey : clientIp, maxReqs, 60000);
+
+    if (!rl.ok && pathname !== '/health' && pathname !== '/status' && pathname !== '/') {
+      return jsonResponse({
         ok: false,
-        error: 'Limite temporário de requisições excedido. Aguarde o período indicado em Retry-After.',
+        error: 'Limite tempor?rio de requisi??es excedido. Aguarde o per?odo indicado em Retry-After.',
         retryAfterSeconds: Math.ceil((rl.resetAt - Date.now()) / 1000)
-      }, null, 2), {
-        status: 429,
-        headers: {
-          'Content-Type': 'application/json; charset=utf-8',
-          'Access-Control-Allow-Origin': '*',
-          'Retry-After': String(Math.max(1, Math.ceil((rl.resetAt - Date.now()) / 1000))),
-          'X-RateLimit-Limit': String(maxReqs),
-          'X-RateLimit-Remaining': String(rl.remaining)
-        }
+      }, 429, {
+        'Retry-After': String(Math.max(1, Math.ceil((rl.resetAt - Date.now()) / 1000))),
+        'X-RateLimit-Limit': String(maxReqs),
+        'X-RateLimit-Remaining': String(rl.remaining)
       });
     }
 
-    if (pathname === '/health' || pathname === '/status' || pathname === '') {
-      return new Response(JSON.stringify({
+    // 4. Healthcheck e Cat?logo de Rotas
+    if (pathname === '/health' || pathname === '/status' || pathname === '/') {
+      return jsonResponse({
         ok: true,
         service: 'BoletoValidator Pro API',
-        version: '2.0.0',
+        version: '2.5.0',
         cluster: 'Cloudflare Edge Anycast (maputo3.workers.dev)',
         status: 'online',
+        autenticado: isCommercial,
+        plano: isCommercial ? 'Pro Anycast' : (isDemo ? 'Sandbox / Demo' : 'Gratuito Limitado'),
+        arquitetura: 'Micro-fun??es At?micas (<1ms) + Auditoria Forense com Prote??o Anti-Injection',
         rotas: {
-          validar: 'GET ou POST /api/validar-boleto',
-          lote: 'POST /api/boleto/lote (até 50 boletos Pro ou 5 gratuitos)'
+          auditar: 'POST /api/auditar (Laudo Pericial Forense Completo: Linha x Barras x Pix x Valores x Anti-Injection)',
+          validar: 'GET ou POST /api/validar?boleto=... (M?dulo 10 e 11 FEBRABAN para 44, 47 e 48 d?gitos)',
+          campoLivre: 'GET ou POST /api/campo-livre?boleto=... (Extra??o de Banco, Ag?ncia, Conta e Nosso N?mero)',
+          antiInjection: 'POST /api/seguranca/anti-injection (Varredura can?ria anti-jailbreak em documentos/textos)',
+          compararPix: 'POST /api/pix/comparar (Cruzamento entre dados do Boleto e QR Code Pix)',
+          barcodeSvg: 'GET /api/barcode?boleto=...&format=svg (Renderizador oficial ITF FEBRABAN em SVG puro)',
+          lote: 'POST /api/boleto/lote (Valida??o em Lote at? 50 itens Pro ou 5 gratuitos)',
+          gerar: 'GET ou POST /api/gerar?banco=341&valor=125.00 (Gerador de boletos v?lidos para homologa??o)'
         },
-        github: 'https://github.com/clepta2/boletovalidator-pro',
-        docs: 'https://ponte.ozpro.com.br'
-      }, null, 2), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' }
+        github: 'https://github.com/clepta2/boletovalidator-pro'
       });
     }
 
-    // Validação em Lote de Boletos (POST /api/boleto/lote ou /api/validar-boleto/lote)
+    // ??? ROTA 1: AUDITORIA FORENSE COMPLETA (ORQUESTRADOR) ?????????????????????
+    if (pathname === '/api/auditar' || pathname === '/api/boleto/auditar') {
+      if (request.method !== 'POST') {
+        return jsonResponse({ ok: false, error: 'Utilize o m?todo POST para a rota de auditoria forense.' }, 405);
+      }
+
+      const params = bodyJson || {};
+      const resultado = auditarBoleto(params);
+
+      // Tratamento de Erro de Seguran?a Especial: Prompt Injection
+      if (!resultado.ok && resultado.codigo === 'PROMPT_INJECTION_DETECTADO') {
+        return jsonResponse(resultado, 422);
+      }
+
+      const statusCode = resultado.valido ? 200 : 422;
+      return jsonResponse(resultado, statusCode, {
+        'Cache-Control': 'public, max-age=120'
+      });
+    }
+
+    // ??? ROTA 2: VALIDA??O AT?MICA FEBRABAN ??????????????????????????????????
+    if (pathname === '/api/validar' || pathname === '/api/validar-boleto' || pathname === '/api/boleto/validar') {
+      let boletoInput = url.searchParams.get('boleto') || url.searchParams.get('linha') || url.searchParams.get('codigo') || '';
+      if (!boletoInput && bodyJson) {
+        boletoInput = bodyJson.boleto || bodyJson.linha || bodyJson.codigo || '';
+      }
+
+      if (!boletoInput) {
+        return jsonResponse({
+          ok: false,
+          valido: false,
+          erro: 'Informe o par?metro ?boleto=LINHA_DIGITAVEL_OU_CODIGO_BARRAS ou no corpo JSON.'
+        }, 400);
+      }
+
+      const resultado = validarLocal(boletoInput);
+      return jsonResponse({
+        ok: resultado.valido,
+        ...resultado,
+        edge: 'maputo3.workers.dev',
+        audit: { timestamp: new Date().toISOString() }
+      }, resultado.valido ? 200 : 422, {
+        'Cache-Control': 'public, max-age=300'
+      });
+    }
+
+    // ??? ROTA 3: DECODIFICA??O DE CAMPO LIVRE (AG?NCIA / CONTA) ??????????????
+    if (pathname === '/api/campo-livre' || pathname === '/api/boleto/campo-livre') {
+      let banco = url.searchParams.get('banco') || '';
+      let campoLivre = url.searchParams.get('campoLivre') || '';
+      let boletoInput = url.searchParams.get('boleto') || '';
+
+      if (bodyJson) {
+        banco = banco || bodyJson.banco || '';
+        campoLivre = campoLivre || bodyJson.campoLivre || '';
+        boletoInput = boletoInput || bodyJson.boleto || '';
+      }
+
+      if (boletoInput && (!banco || !campoLivre)) {
+        const resVal = validarLocal(boletoInput);
+        if (resVal.valido && resVal.codigoBarras && resVal.banco) {
+          banco = resVal.banco.codigo;
+          campoLivre = resVal.codigoBarras.slice(19, 44);
+        }
+      }
+
+      if (!banco || !campoLivre) {
+        return jsonResponse({
+          ok: false,
+          erro: 'Informe ?boleto=... ou os par?metros ?banco=XXX&campoLivre=YYYYYYYYYYYYYYYYYYYYYYYYY (25 d?gitos).'
+        }, 400);
+      }
+
+      const decodificado = decodificarCampoLivre(banco, campoLivre);
+      return jsonResponse({
+        ok: Boolean(decodificado),
+        banco,
+        campoLivre,
+        dadosBancarios: decodificado
+      }, 200, { 'Cache-Control': 'public, max-age=600' });
+    }
+
+    // ??? ROTA 4: SEGURAN?A / ANTI-PROMPT INJECTION ???????????????????????????
+    if (pathname === '/api/seguranca/anti-injection' || pathname === '/api/anti-injection') {
+      let texto = url.searchParams.get('texto') || '';
+      if (bodyJson) texto = texto || bodyJson.texto || bodyJson.documento || '';
+
+      if (!texto) {
+        return jsonResponse({ ok: false, erro: 'Envie o campo "texto" no corpo JSON ou via query param.' }, 400);
+      }
+
+      const resShield = detectarPromptInjection(texto);
+      if (!resShield.seguro) {
+        return jsonResponse({
+          ok: false,
+          status: 'ALERTA_DE_SEGURANCA',
+          ...resShield
+        }, 422);
+      }
+
+      return jsonResponse({
+        ok: true,
+        status: 'SEGURO',
+        ...resShield
+      });
+    }
+
+    // ??? ROTA 5: COMPARADOR BOLETO vs PIX ????????????????????????????????????
+    if (pathname === '/api/pix/comparar' || pathname === '/api/boleto/pix-comparar') {
+      const p = bodyJson || {};
+      const boletoInput = p.boleto || url.searchParams.get('boleto') || '';
+      const payloadPix = p.payloadPix || p.pix || url.searchParams.get('pix') || '';
+      const beneficiario = p.beneficiario || url.searchParams.get('beneficiario') || '';
+
+      if (!payloadPix) {
+        return jsonResponse({ ok: false, erro: 'Informe o campo "payloadPix" (C?digo Pix Copia e Cola / EMVCo).' }, 400);
+      }
+
+      let dadosBoleto = null;
+      if (boletoInput) {
+        dadosBoleto = validarLocal(boletoInput);
+      }
+
+      const comp = compararBoletoPix(dadosBoleto, payloadPix, beneficiario);
+      return jsonResponse({
+        ok: comp.compativel,
+        ...comp
+      });
+    }
+
+    // ??? ROTA 6: RENDERIZADOR DE C?DIGO DE BARRAS SVG (ITF FEBRABAN) ??????????
+    if (pathname === '/api/barcode' || pathname === '/api/boleto/barcode') {
+      let boletoInput = url.searchParams.get('boleto') || url.searchParams.get('codigo') || '';
+      const height = parseInt(url.searchParams.get('height') || '65', 10);
+      const wantsSvgDirect = url.searchParams.get('format') === 'svg' ||
+        (request.headers.get('Accept') && request.headers.get('Accept').includes('image/svg+xml'));
+
+      if (!boletoInput && bodyJson) {
+        boletoInput = bodyJson.boleto || bodyJson.codigo || '';
+      }
+
+      const limpo = limpar(boletoInput);
+      let code44 = limpo;
+      if (limpo.length === 47 || limpo.length === 48) {
+        const val = validarLocal(limpo);
+        if (val.valido && val.codigoBarras) {
+          code44 = val.codigoBarras;
+        }
+      }
+
+      const svg = gerarBarcodeSvg(code44, height);
+      if (!svg) {
+        return jsonResponse({ ok: false, erro: 'C?digo inv?lido para gera??o de c?digo de barras FEBRABAN.' }, 400);
+      }
+
+      if (wantsSvgDirect) {
+        return new Response(svg, {
+          status: 200,
+          headers: {
+            'Content-Type': 'image/svg+xml; charset=utf-8',
+            ...CORS_HEADERS,
+            'Cache-Control': 'public, max-age=86400'
+          }
+        });
+      }
+
+      return jsonResponse({
+        ok: true,
+        codigoBarras: code44,
+        barcodeSvg: svg
+      });
+    }
+
+    // ??? ROTA 7: VALIDA??O EM LOTE ???????????????????????????????????????????
     if (pathname === '/api/boleto/lote' || pathname === '/api/validar-boleto/lote') {
       if (request.method !== 'POST') {
-        return new Response(JSON.stringify({ ok: false, error: 'Use POST com um array "boletos".' }), {
-          status: 405,
-          headers: { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' }
-        });
+        return jsonResponse({ ok: false, error: 'Use POST com um array "boletos".' }, 405);
       }
 
       const lista = bodyJson && Array.isArray(bodyJson.boletos) ? bodyJson.boletos : null;
       if (!lista || lista.length === 0) {
-        return new Response(JSON.stringify({ ok: false, error: 'Envie um array não vazio "boletos" no corpo JSON.' }), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' }
-        });
+        return jsonResponse({ ok: false, error: 'Envie um array n?o vazio "boletos" no corpo JSON.' }, 400);
       }
 
-      const maxItems = isPro ? 50 : 5;
+      const maxItems = isCommercial ? 50 : 5;
       if (lista.length > maxItems) {
-        return new Response(JSON.stringify({
+        return jsonResponse({
           ok: false,
-          error: `O lote aceita até ${maxItems} boletos por requisição neste plano.`,
+          error: `O lote aceita at? ${maxItems} boletos por requisi??o neste plano.`,
           maxItems
-        }), {
-          status: 413,
-          headers: { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' }
-        });
+        }, 413);
       }
 
       const resultados = lista.map((item) => {
-        const res = validarBoletoAlgoritmo(item);
+        const res = validarLocal(item);
         return {
           boletoInformado: String(item),
           ok: res.valido,
@@ -407,18 +341,16 @@ export default {
         };
       });
 
-      return new Response(JSON.stringify({
+      return jsonResponse({
         ok: true,
         totalSolicitado: lista.length,
         totalValidos: resultados.filter((item) => item.valido).length,
         totalInvalidos: resultados.filter((item) => !item.valido).length,
         resultados
-      }, null, 2), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' }
       });
     }
 
+    // ??? ROTA 8: GERADOR DE BOLETOS V?LIDOS ??????????????????????????????????
     if (pathname === '/api/gerar' || pathname === '/api/boleto/gerar') {
       let params = {};
       if (bodyJson) {
@@ -430,84 +362,13 @@ export default {
           vencimento: url.searchParams.get('vencimento') || ''
         };
       }
-      const gerado = BoletoValidatorPro.gerarBoleto(params);
-      return new Response(JSON.stringify({
+      const gerado = gerarBoleto(params);
+      return jsonResponse({
         ok: true,
         boletoGerado: gerado
-      }, null, 2), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' }
       });
     }
 
-    if (pathname === '/api/validar-boleto' || pathname === '/api/boleto/validar') {
-      const apiKey = request.headers.get('x-api-key') ||
-                     request.headers.get('Authorization')?.replace(/^Bearer\s+/i, '') ||
-                     url.searchParams.get('api_key') ||
-                     url.searchParams.get('key') || '';
-      const cleanKey = String(apiKey).trim();
-      const isValidKey = Boolean(
-        cleanKey && (
-          cleanKey.startsWith('bol_live_') || 
-          cleanKey.startsWith('bol_pro_') || 
-          cleanKey.startsWith('bol_master_') || 
-          cleanKey.startsWith('pnt_live_') ||
-          (env && (env.API_KEY === cleanKey || env.PRO_KEY === cleanKey))
-        ) && cleanKey.length >= 16
-      );
-
-      if (!isValidKey) {
-        return new Response(JSON.stringify({
-          ok: false,
-          error: 'Acesso n?o autorizado. Chave de API ausente ou inv?lida.',
-          mensagem: 'O consumo deste microsservi?o requer uma Chave de API ativa. Obtenha sua chave no nosso Portal de APIs e envie via header "x-api-key" ou "Authorization: Bearer SUA_CHAVE".',
-          status: 401
-        }, null, 2), {
-          status: 401,
-          headers: {
-            'Content-Type': 'application/json; charset=utf-8',
-            'Access-Control-Allow-Origin': '*'
-          }
-        });
-      }
-      let boletoInput = url.searchParams.get('boleto') || url.searchParams.get('linha') || '';
-      if (!boletoInput && request.method === 'POST') {
-        try {
-          const body = await request.json();
-          boletoInput = body.boleto || body.linha || '';
-        } catch (_) {}
-      }
-
-      if (!boletoInput) {
-        return new Response(JSON.stringify({
-          ok: false,
-          valido: false,
-          erro: 'Informe o parÃ¢metro ?boleto=LINHA_DIGITAVEL'
-        }), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' }
-        });
-      }
-
-      const resultado = validarBoletoAlgoritmo(boletoInput);
-      return new Response(JSON.stringify({
-        ok: resultado.valido,
-        ...resultado,
-        edge: 'maputo3.workers.dev',
-        audit: { timestamp: new Date().toISOString() }
-      }, null, 2), {
-        status: resultado.valido ? 200 : 422,
-        headers: {
-          'Content-Type': 'application/json; charset=utf-8',
-          'Access-Control-Allow-Origin': '*',
-          'Cache-Control': 'public, max-age=300'
-        }
-      });
-    }
-
-    return new Response(JSON.stringify({ ok: false, error: 'Endpoint nÃ£o encontrado. Use /api/validar-boleto' }), {
-      status: 404,
-      headers: { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' }
-    });
+    return jsonResponse({ ok: false, error: 'Endpoint n?o encontrado. Acesse / para visualizar o cat?logo de rotas.' }, 404);
   }
 };

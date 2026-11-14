@@ -133,6 +133,14 @@ export interface ChecagensAuditoria {
   cnpjBeneficiarioValido: boolean | null;
 }
 
+export interface FinalidadeBoleto {
+  categoria: string;
+  segmento: string;
+  ehConcessionaria: boolean;
+  seguro: boolean;
+  explicacao: string;
+}
+
 export interface LaudoAuditoriaBoleto {
   ok: boolean;
   valido: boolean;
@@ -160,6 +168,7 @@ export interface LaudoAuditoriaBoleto {
     pix?: any;
   };
   checagens?: ChecagensAuditoria;
+  finalidade?: FinalidadeBoleto;
   alertas?: string[];
   detalhesSeguranca?: ResultadoPromptInjection;
   timestamp?: string;

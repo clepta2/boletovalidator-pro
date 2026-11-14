@@ -1212,7 +1212,7 @@ export function auditarBoleto(params) {
     }
   }
 
-  // 7. Checagem Pix Híbrido
+  // 7. Checagem Pix Híbrido e Detecção de Golpe: Concessionária vs Pessoa Física
   let dadosPix = null;
   if (p.payloadPix) {
     const compPix = compararBoletoPix(validacao, p.payloadPix, p.beneficiarioImpresso);
@@ -1222,9 +1222,71 @@ export function auditarBoleto(params) {
       scoreRisco += 50;
       alertas.push(...compPix.divergencias);
     }
+
+    // Detecção Avançada: Fatura de Concessionária / Empresa x Pix para Pessoa Física (CPF)
+    if (dadosPix && dadosPix.crcValido) {
+      const chavePixLimpa = String(dadosPix.chavePix || '').replace(/\D/g, '');
+      const ehChaveCpf = chavePixLimpa.length === 11;
+      const textoDoc = [p.beneficiarioImpresso, p.textoDocumento].filter(Boolean).join(' ').toLowerCase();
+      const pareceConcessionaria = /sabesp|copasa|sanepar|cedae|corsan|embasa|caesb|enel|cemig|cpfl|copel|light|energisa|neoenergia|equatorial|comgas|naturgy|saneamento|agua|esgoto|energia|eletricidade/i.test(textoDoc) || (validacao.segmento && ['1','2','3','4','5','7'].includes(validacao.segmento.codigo));
+
+      if (pareceConcessionaria && ehChaveCpf) {
+        scoreRisco += 75;
+        alertas.push(`🚨 GOLPE DETECTADO: O documento alega ser fatura de serviço público (${p.beneficiarioImpresso || validacao.segmento?.descricao || 'Água/Luz'}), mas o QR Code Pix direciona o pagamento para um CPF DE PESSOA FÍSICA (${dadosPix.chavePix}) em nome de "${dadosPix.nomeRecebedor}". Concessionárias legítimas utilizam exclusivamente CNPJ próprio!`);
+      } else if (p.beneficiarioCnpjCpf && String(p.beneficiarioCnpjCpf).replace(/\D/g, '').length === 14 && ehChaveCpf) {
+        scoreRisco += 60;
+        alertas.push(`🚨 DIVERGÊNCIA GRAVE: O documento está no nome de Pessoa Jurídica (CNPJ), mas o QR Code Pix credita um CPF de Pessoa Física (${dadosPix.chavePix}) em nome de "${dadosPix.nomeRecebedor}".`);
+      }
+    }
   }
 
-  // 8. Determina Status e Scores
+  // 8. Classificação de Finalidade e Alerta de Linha Bancária para Água/Luz
+  let finalidade = {
+    categoria: 'Boleto Bancário Comercial',
+    segmento: validacao.banco?.nome || 'Instituição Financeira',
+    ehConcessionaria: false,
+    seguro: true,
+    explicacao: 'Boleto bancário padrão FEBRABAN para cobrança de produtos, serviços, mensalidades ou títulos mercantis.'
+  };
+
+  if (validacao.tipo && validacao.tipo.includes('Concessionária')) {
+    const seg = validacao.segmento?.codigo;
+    finalidade.ehConcessionaria = true;
+    if (seg === '2') {
+      finalidade.categoria = 'Saneamento Básico / Água e Esgoto';
+      finalidade.segmento = 'Água e Saneamento';
+      finalidade.explicacao = 'Fatura oficial de fornecimento de água tratada e serviços de saneamento básico (ex: Sabesp, Copasa, Sanepar, Cedae).';
+    } else if (seg === '3') {
+      finalidade.categoria = 'Energia Elétrica e Gás';
+      finalidade.segmento = 'Eletricidade e Gás Canalizado';
+      finalidade.explicacao = 'Fatura oficial de consumo de energia elétrica ou gás canalizado regulada pela ANEEL (ex: Enel, CPFL, Cemig, Light, Comgás).';
+    } else if (seg === '1') {
+      finalidade.categoria = 'Prefeitura / IPTU / Taxas Municipais';
+      finalidade.segmento = 'Arrecadação Municipal';
+      finalidade.explicacao = 'Guia oficial de arrecadação municipal direta (IPTU, ISS, taxas públicas).';
+    } else if (seg === '4') {
+      finalidade.categoria = 'Telecomunicações / Internet e Telefonia';
+      finalidade.segmento = 'Telecomunicações';
+      finalidade.explicacao = 'Fatura de serviços de telefonia, internet banda larga ou TV por assinatura (ex: Vivo, Claro, TIM).';
+    } else if (seg === '5') {
+      finalidade.categoria = 'Tributos Federais ou Estaduais / Órgãos Governamentais';
+      finalidade.segmento = 'Tributação Estadual / Federal';
+      finalidade.explicacao = 'Guia oficial de recolhimento de impostos e tributos públicos (DARF, DAS Simples Nacional, IPVA, GPS).';
+    } else if (seg === '7') {
+      finalidade.categoria = 'Multas de Trânsito / DETRAN';
+      finalidade.segmento = 'Órgão de Trânsito';
+      finalidade.explicacao = 'Guia oficial de arrecadação de multas de trânsito ou licenciamento veicular.';
+    }
+  } else {
+    const textoDoc = [p.beneficiarioImpresso, p.textoDocumento].filter(Boolean).join(' ').toLowerCase();
+    const alegaConcessionaria = /sabesp|copasa|sanepar|cedae|enel|cemig|cpfl|copel|light|comgas/i.test(textoDoc);
+    if (alegaConcessionaria) {
+      scoreRisco += 40;
+      alertas.push(`⚠️ ATENÇÃO: O documento menciona concessionária de consumo (${p.beneficiarioImpresso || 'Água/Luz'}), porém a linha informada é um boleto bancário de 47 dígitos (${validacao.banco?.nome || 'Banco'}). Contas oficiais de consumo costumam utilizar guias de arrecadação de 48 dígitos (iniciadas por 82 ou 83).`);
+    }
+  }
+
+  // 9. Determina Status e Scores
   let status = 'INTEGRO_SEM_ADULTERACAO';
   if (scoreRisco >= 50) {
     status = 'ALERTA_FRAUDE';
@@ -1259,6 +1321,7 @@ export function auditarBoleto(params) {
       pix: dadosPix
     },
     checagens,
+    finalidade,
     alertas,
     timestamp: new Date().toISOString()
   };

@@ -161,4 +161,20 @@ console.assert(resHttpAuditInj.status === 422, 'Status deve ser 422');
 console.assert(bodyHttpAuditInj.codigo === 'PROMPT_INJECTION_DETECTADO', 'Código de erro de injeção retornado na rota /api/auditar');
 console.log('✅ Rota /api/auditar barrou injeção de prompt com status 422 e código PROMPT_INJECTION_DETECTADO');
 
+// 17. Detecção de Golpe: Concessionária / Empresa com Pix para Pessoa Física (CPF)
+console.log('\n--- 17. Detecção de Golpe: Sabesp/Concessionária x Pix para Pessoa Física ---');
+// Pix com chave CPF (11 dígitos numéricos) e nome de pessoa física
+const pixPessoaFisica = '00020126330014BR.GOV.BCB.PIX0111123456789015204000053039865406150.005802BR5915FULANO DA SILVA6009SAO PAULO62070503***6304669D';
+const resGolpeSabesp = auditarBoleto({
+  boleto: contaLuz, // Concessionária de 48 dígitos
+  beneficiarioImpresso: 'SABESP CIA DE SANEAMENTO BASICO DE SP',
+  payloadPix: pixPessoaFisica
+});
+console.assert(resGolpeSabesp.status === 'ALERTA_FRAUDE', 'Boleto Sabesp com Pix CPF deve dar ALERTA_FRAUDE');
+console.assert(resGolpeSabesp.scoreRisco >= 75, 'Score de risco deve ser alto');
+console.assert(resGolpeSabesp.finalidade.ehConcessionaria === true, 'Finalidade deve identificar concessionária');
+console.log('✅ Detecção de Golpe Concessionária x Pix CPF OK!');
+console.log('   Finalidade:', resGolpeSabesp.finalidade.categoria);
+console.log('   Alerta emitido:', resGolpeSabesp.alertas[0]);
+
 console.log('\n🎉 Todos os testes unitários passaram!');

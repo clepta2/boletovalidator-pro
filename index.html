@@ -446,6 +446,7 @@
             <button class="btn btn-secondary btn-sm" id="btnPresetItau">Exemplo Itaú</button>
             <button class="btn btn-secondary btn-sm" id="btnPresetLuz">Exemplo Luz</button>
             <button class="btn btn-secondary btn-sm" id="btnPresetInj">Simular Injeção</button>
+            <button class="btn btn-secondary btn-sm" id="btnPresetSabespGolpe" style="color:#f87171;">🚨 Sabesp x Pix CPF</button>
           </div>
         </div>
 
@@ -536,6 +537,14 @@
             <h3 id="statusTitulo">BOLETO ÍNTEGRO (SEM ADULTERAÇÃO)</h3>
             <p id="statusDesc">O documento passou por todas as validações de integridade matemática e consistência interna.</p>
           </div>
+        </div>
+
+        <div id="boxFinalidade" style="background:#0f172a;border:1px solid var(--card-border);border-radius:8px;padding:0.75rem 0.95rem;font-size:0.82rem;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.25rem;">
+            <strong style="color:var(--text);font-size:0.85rem;" id="txtFinalidadeCat">Finalidade: Boleto Bancário Comercial</strong>
+            <span class="badge" id="badgeFinalidadeSegura" style="background:rgba(16,185,129,0.15);color:#34d399;font-size:0.7rem;">Seguro</span>
+          </div>
+          <p style="color:var(--text-muted);font-size:0.78rem;line-height:1.4;" id="txtFinalidadeDesc">Boleto padrão FEBRABAN para cobrança comercial.</p>
         </div>
 
         <div class="kpi-grid">
@@ -686,6 +695,17 @@
       executarAuditoria();
     });
 
+    document.getElementById('btnPresetSabespGolpe').addEventListener('click', () => {
+      document.getElementById('txtLinha').value = '836200000013 500000538008 000000000000 000000000000';
+      document.getElementById('txtValorImp').value = '150.00';
+      document.getElementById('txtVencImp').value = '2026-11-25';
+      document.getElementById('txtBeneficiario').value = 'SABESP - CIA DE SANEAMENTO BASICO DO ESTADO DE SP';
+      // Pix fraudulento direcionando para CPF de pessoa física
+      document.getElementById('txtPix').value = '00020126330014BR.GOV.BCB.PIX0111123456789015204000053039865406150.005802BR5915FULANO DA SILVA6009SAO PAULO62070503***6304669D';
+      document.getElementById('txtDoc').value = 'Fatura mensal de serviços de água e esgoto SABESP. Pagamento via Pix com chave CPF de pessoa física.';
+      executarAuditoria();
+    });
+
     document.getElementById('btnLimpar').addEventListener('click', () => {
       document.getElementById('txtLinha').value = '';
       document.getElementById('txtValorImp').value = '';
@@ -830,6 +850,22 @@
         listaAlertas.innerHTML = laudo.alertas.map(a => `<li>${a}</li>`).join('');
       } else {
         boxAlertas.style.display = 'none';
+      }
+
+      // Renderiza Finalidade do Documento
+      if (laudo.finalidade) {
+        document.getElementById('txtFinalidadeCat').textContent = `Finalidade: ${laudo.finalidade.categoria}`;
+        document.getElementById('txtFinalidadeDesc').textContent = laudo.finalidade.explicacao;
+        const b = document.getElementById('badgeFinalidadeSegura');
+        if (laudo.scoreSeguranca >= 80) {
+          b.textContent = 'Validação Oficial';
+          b.style.background = 'rgba(16,185,129,0.15)';
+          b.style.color = '#34d399';
+        } else {
+          b.textContent = 'Atenção / Suspeito';
+          b.style.background = 'rgba(239,68,68,0.15)';
+          b.style.color = '#f87171';
+        }
       }
 
       numCodigoBarras.textContent = laudo.codigoBarras || '';

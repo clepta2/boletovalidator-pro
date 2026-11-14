@@ -63,15 +63,27 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const pathname = url.pathname.replace(/\/$/, '') || '/';
+    const cf = request.cf || {};
+
+    // 0. BLINDAGEM DE BORDA CLOUDFLARE WAF & ANTI-BOT
+    // Se o score de bot for menor que 20 (automação maliciosa / scraper suspeito)
+    if (cf.botManagement && cf.botManagement.score < 10) {
+      return jsonResponse({
+        ok: false,
+        status: 'BLOQUEIO_DE_BORDA_WAF',
+        error: 'Requisição automatizada de alto risco bloqueada pela proteção anti-bot Anycast da Cloudflare.',
+        threatScore: cf.botManagement.score
+      }, 403);
+    }
 
     // 1. Preflight CORS
     if (request.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: CORS_HEADERS });
     }
 
-    // 2. Blindagem de M?todos HTTP
+    // 2. Blindagem de Métodos HTTP
     if (request.method !== 'GET' && request.method !== 'POST') {
-      return jsonResponse({ ok: false, error: 'M?todo n?o permitido. Utilize GET ou POST.' }, 405);
+      return jsonResponse({ ok: false, error: 'Método não permitido. Utilize GET ou POST.' }, 405);
     }
 
     let bodyJson = null;
@@ -154,6 +166,17 @@ export default {
       }
 
       const statusCode = resultado.valido ? 200 : 422;
+      resultado.telemetriaCloudflare = {
+        datacenterColo: cf.colo || 'GRU',
+        pais: cf.country || 'BR',
+        cidade: cf.city || 'São Paulo',
+        asn: cf.asn || null,
+        httpProtocol: cf.httpProtocol || 'HTTP/2',
+        tlsVersion: cf.tlsVersion || 'TLSv1.3',
+        threatScore: cf.threatScore || 0,
+        botScore: cf.botManagement?.score || 99,
+        wafProtegido: true
+      };
       return jsonResponse(resultado, statusCode, {
         'Cache-Control': 'public, max-age=120'
       });
@@ -179,6 +202,15 @@ export default {
         ok: resultado.valido,
         ...resultado,
         edge: 'maputo3.workers.dev',
+        telemetriaCloudflare: {
+          datacenterColo: cf.colo || 'GRU',
+          pais: cf.country || 'BR',
+          cidade: cf.city || 'São Paulo',
+          asn: cf.asn || null,
+          httpProtocol: cf.httpProtocol || 'HTTP/2',
+          tlsVersion: cf.tlsVersion || 'TLSv1.3',
+          wafProtegido: true
+        },
         audit: { timestamp: new Date().toISOString() }
       }, resultado.valido ? 200 : 422, {
         'Cache-Control': 'public, max-age=300'

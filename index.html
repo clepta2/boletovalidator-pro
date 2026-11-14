@@ -407,23 +407,84 @@
     }
     footer a { color: var(--primary); text-decoration: none; }
     footer a:hover { text-decoration: underline; }
+
+    :root {
+      --primary: var(--mint, #a3e635);
+      --primary-hover: var(--mint-light, #d9f99d);
+    }
+    .btn-primary {
+      background: var(--mint, #a3e635) !important;
+      color: #0c1715 !important;
+      font-weight: 700 !important;
+      box-shadow: 0 2px 10px rgba(163, 230, 53, 0.25) !important;
+    }
+    .btn-primary:hover {
+      background: var(--mint-light, #d9f99d) !important;
+      box-shadow: 0 4px 14px rgba(163, 230, 53, 0.35) !important;
+    }
+    .tab-btn.active {
+      border-color: var(--mint, #a3e635) !important;
+      color: var(--mint, #a3e635) !important;
+    }
   </style>
+  <link rel="stylesheet" href="ponte-suite.css">
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('ponte.theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    })();
+
+    // Inicialização do Alternador de Tema Ponte API
+    const themeBtn = document.getElementById('theme-toggle-btn');
+    if (themeBtn) {
+      const updateThemeIcon = () => {
+        themeBtn.textContent = document.documentElement.getAttribute('data-theme') === 'light' ? '☀️' : '🌙';
+      };
+      themeBtn.addEventListener('click', () => {
+        const cur = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', cur);
+        localStorage.setItem('ponte.theme', cur);
+        updateThemeIcon();
+      });
+      updateThemeIcon();
+    }
+  </script>
 </head>
 <body>
 
-  <header>
-    <div class="header-inner">
-      <div class="logo-area">
-        <div class="logo-icon">⚡</div>
-        <div class="logo-title">
-          <h1>BoletoValidator Pro</h1>
-          <span>Auditoria Forense & Scanner Anycast FEBRABAN</span>
+    <header class="ponte-header">
+    <div class="ponte-header-inner">
+      <div class="ponte-brand-block">
+        <a class="ponte-brand" href="https://ponte-marketplace.maputo2.workers.dev/#catalogo">
+          <svg class="ponte-brand-logo" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="40" height="40" rx="10" fill="#a3e635"/>
+            <path d="M12 28V12L28 20L12 28Z" fill="#0c1715"/>
+          </svg>
+          <div class="ponte-brand-copy">
+            <strong>ponte</strong>
+            <small>API MARKET · OZPRO</small>
+          </div>
+        </a>
+        <div class="ponte-breadcrumb">
+          <a href="https://ponte-marketplace.maputo2.workers.dev/#catalogo">Workspace</a>
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+          <a href="https://ponte-marketplace.maputo2.workers.dev/#catalogo">Financeiro & Pagamentos</a>
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+          <strong>BoletoValidator Pro</strong>
         </div>
       </div>
-      <div class="api-key-box" title="Sua chave fica gravada apenas no LocalStorage do seu navegador">
-        <span style="font-size: 0.8rem;">🔑</span>
-        <input type="text" id="inputApiKey" placeholder="bol_live_... (ou deixe vazio para Demo)" />
-        <button class="btn btn-secondary btn-sm" id="btnSalvarKey">Salvar</button>
+      <div class="ponte-topbar-actions">
+        <span class="ponte-status-edge"><span class="ponte-status-dot"></span> Cloudflare Anycast &lt;5ms</span>
+        <div class="api-key-box" title="Sua chave fica gravada apenas no LocalStorage do seu navegador">
+          <span style="font-size: 0.8rem;">🔑</span>
+          <input type="text" id="inputApiKey" placeholder="bol_live_... (ou Demo)" />
+          <button class="btn btn-secondary btn-sm" id="btnSalvarKey">Salvar</button>
+        </div>
+        <a href="https://ponte-marketplace.maputo2.workers.dev/#catalogo" class="ponte-btn-marketplace">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+          Marketplace
+        </a>
+        <button class="ponte-theme-btn" id="theme-toggle-btn" title="Alternar tema claro/escuro">🌙</button>
       </div>
     </div>
   </header>
@@ -693,8 +754,15 @@
     </div>
   </main>
 
-  <footer>
-    <p>BoletoValidator Pro &bull; Desenvolvido para Borda Cloudflare Anycast &bull; <a href="https://github.com/clepta2/boletovalidator-pro" target="_blank">Repositório no GitHub</a></p>
+    <footer class="ponte-footer">
+    <div style="max-width:1200px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+      <div>
+        <strong>BoletoValidator Pro</strong> &bull; Auditoria Forense, Scanner & Validador Anycast FEBRABAN
+      </div>
+      <div>
+        Integrado ao <a href="https://ponte-marketplace.maputo2.workers.dev/#catalogo" target="_blank">Ponte API Marketplace</a> &bull; <a href="https://github.com/clepta2/boletovalidator-pro" target="_blank">SDK Oficial no GitHub</a>
+      </div>
+    </div>
   </footer>
 
   <!-- SCRIPT MODULAR CARREGADO DIRETAMENTE COMO ES MODULE -->

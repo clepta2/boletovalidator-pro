@@ -1284,6 +1284,46 @@ export function auditarBoleto(params) {
       scoreRisco += 40;
       alertas.push(`⚠️ ATENÇÃO: O documento menciona concessionária de consumo (${p.beneficiarioImpresso || 'Água/Luz'}), porém a linha informada é um boleto bancário de 47 dígitos (${validacao.banco?.nome || 'Banco'}). Contas oficiais de consumo costumam utilizar guias de arrecadação de 48 dígitos (iniciadas por 82 ou 83).`);
     }
+
+    // 1. Golpe do Falso MEI / Taxa Anual Associativa
+    const alegaMei = /\bmei\b|microempreendedor|das-mei|taxa\s+anual\s+mei|cadastro\s+nacional\s+mei|renovacao\s+mei|associacao\s+comercial\s+mei/i.test(textoDoc);
+    if (alegaMei) {
+      scoreRisco += 75;
+      alertas.push(`🚨 GOLPE DO FALSO MEI: O documento alega ser cobrança ou taxa associativa de MEI / Simples Nacional, mas utiliza boleto bancário comercial privado de 47 dígitos (${validacao.banco?.nome || 'Banco'}). O DAS oficial do MEI é emitido exclusivamente no Portal do Empreendedor e nunca em boleto bancário comercial!`);
+    }
+
+    // 2. Golpe da Falsa Taxa do INPI / Registro de Marcas
+    const alegaInpi = /\binpi\b|propriedade\s+industrial|registro\s+de\s+marcas?|publicacao\s+rpi|taxa\s+marca/i.test(textoDoc);
+    if (alegaInpi) {
+      scoreRisco += 75;
+      alertas.push(`🚨 GOLPE DO FALSO INPI: O documento menciona registro de marcas / patentes ou taxas do INPI, porém a linha digitável é um boleto bancário comercial (47 dígitos). Taxas oficiais do INPI são recolhidas exclusivamente via GRU (Guia de Recolhimento da União)!`);
+    }
+
+    // 3. Golpe do Falso Tributo / DARF / Receita Federal
+    const alegaDarfReceita = /\bdarf\b|receita\s+federal|pgfn|procuradoria\s+geral\s+da\s+fazenda|imposto\s+de\s+renda/i.test(textoDoc);
+    if (alegaDarfReceita) {
+      scoreRisco += 80;
+      alertas.push(`🚨 GOLPE DE TRIBUTO FEDERAL FALSO: O documento alega ser DARF ou débito com a Receita Federal / PGFN, mas utiliza boleto de cobrança bancária privada (${validacao.banco?.nome || 'Banco'}). Tributos oficiais da União utilizam guias de arrecadação iniciadas por 85!`);
+    }
+  }
+
+  // 4. Detecção de Boleto com Valor Aberto (Zerado na linha) com valor fixo impresso
+  if (validacao.valor === 0 && p.valorImpresso && Number(p.valorImpresso) > 0) {
+    scoreRisco += 35;
+    alertas.push(`⚠️ ALERTA DE VALOR ABERTO: O documento exibe valor impresso nominal (R$ ${Number(p.valorImpresso).toFixed(2).replace('.', ',')}), porém a linha digitável foi gerada com valor zerado/aberto (0000000000). O pagador precisará digitar o valor manualmente.`);
+  }
+
+  // 5. Detecção de Boleto Reciclado / Vencimento Antigo Reutilizado (> 120 dias de defasagem)
+  if (p.vencimentoImpresso && validacao.vencimento) {
+    try {
+      const dImp = new Date(p.vencimentoImpresso);
+      const dLinha = new Date(validacao.vencimento.iso);
+      const diffDias = Math.abs(Math.round((dImp - dLinha) / (1000 * 60 * 60 * 24)));
+      if (diffDias > 120) {
+        scoreRisco += 60;
+        alertas.push(`🚨 ADULTERAÇÃO DE VENCIMENTO: A data informada no papel (${p.vencimentoImpresso}) diverge em ${diffDias} dias da data codificada matematicamente pelo fator FEBRABAN (${validacao.vencimento.formatada}). Forte sinal de boleto antigo reciclado/adulterado!`);
+      }
+    } catch (_) {}
   }
 
   // 9. Determina Status e Scores

@@ -177,4 +177,36 @@ console.log('✅ Detecção de Golpe Concessionária x Pix CPF OK!');
 console.log('   Finalidade:', resGolpeSabesp.finalidade.categoria);
 console.log('   Alerta emitido:', resGolpeSabesp.alertas[0]);
 
+// 18. Detecção de Golpe: Falso MEI em Boleto Bancário Comercial
+console.log('\n--- 18. Detecção de Golpe: Falso MEI ---');
+const resGolpeMei = auditarBoleto({
+  boleto: itau, // 47 dígitos banco privado
+  beneficiarioImpresso: 'ASSOCIACAO NACIONAL CADASTRO MEI',
+  textoDocumento: 'Notificação extrajudicial: Recolhimento da taxa anual associativa MEI obrigatória.'
+});
+console.assert(resGolpeMei.status === 'ALERTA_FRAUDE', 'Falso MEI deve dar ALERTA_FRAUDE');
+console.assert(resGolpeMei.alertas.some(a => a.includes('GOLPE DO FALSO MEI')), 'Deve emitir alerta de falso MEI');
+console.log('✅ Bloqueio de Golpe do Falso MEI OK! Alerta:', resGolpeMei.alertas[0]);
+
+// 19. Detecção de Golpe: Falsa Taxa do INPI / Marcas
+console.log('\n--- 19. Detecção de Golpe: Falso INPI ---');
+const resGolpeInpi = auditarBoleto({
+  boleto: itau,
+  beneficiarioImpresso: 'INSTITUTO NACIONAL REGISTRO MARCAS LTDA',
+  textoDocumento: 'Taxa de publicação RPI referente ao processo de registro de marca INPI.'
+});
+console.assert(resGolpeInpi.status === 'ALERTA_FRAUDE', 'Falso INPI deve dar ALERTA_FRAUDE');
+console.assert(resGolpeInpi.alertas.some(a => a.includes('GOLPE DO FALSO INPI')), 'Deve emitir alerta de falso INPI');
+console.log('✅ Bloqueio de Golpe do Falso INPI OK! Alerta:', resGolpeInpi.alertas[0]);
+
+// 20. Detecção de Boleto Antigo Reciclado / Vencimento Adulterado
+console.log('\n--- 20. Detecção de Boleto Antigo Reciclado ---');
+const resBoletoReciclado = auditarBoleto({
+  boleto: itau, // Vencimento embutido é 2026-11-28
+  vencimentoImpresso: '2027-11-28' // 1 ano de diferença impresso na folha!
+});
+console.assert(resBoletoReciclado.status === 'ALERTA_FRAUDE', 'Divergência de mais de 120 dias deve dar ALERTA_FRAUDE');
+console.assert(resBoletoReciclado.alertas.some(a => a.includes('ADULTERAÇÃO DE VENCIMENTO')), 'Deve alertar sobre vencimento reciclado');
+console.log('✅ Detecção de Boleto Reciclado OK! Alerta:', resBoletoReciclado.alertas[0]);
+
 console.log('\n🎉 Todos os testes unitários passaram!');

@@ -492,18 +492,22 @@
 
         <!-- ABA 2: SCANNER AO VIVO VIA CÂMERA -->
         <div class="tab-content" id="tab-camera">
-          <div class="scanner-view">
+          <div class="scanner-view" id="scannerContainer">
             <video id="videoScanner" playsinline muted></video>
-            <div class="scanner-overlay">
+            <div class="scanner-overlay" id="scannerOverlay" style="display: none;">
               <div class="scanner-line"></div>
             </div>
-            <div id="camPlaceholder" style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 1rem;">
-              Câmera desativada.<br>Clique em "Iniciar Câmera" para ler o código de barras ou Pix em tempo real.
+            <div id="camPlaceholder" style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 1.25rem;">
+              <div id="camStatusIcon" style="font-size: 1.75rem; margin-bottom: 0.35rem;">📷</div>
+              <strong id="camStatusTitulo" style="display: block; color: var(--text); font-size: 0.95rem; margin-bottom: 0.25rem;">Verificando câmera do dispositivo...</strong>
+              <p id="camStatusDesc" style="font-size: 0.8rem;">Aguarde enquanto verificamos se este computador ou celular possui câmera disponível.</p>
             </div>
           </div>
           <div class="btn-row" style="margin-top: 0.75rem;">
             <button class="btn btn-primary" id="btnIniciarCam">▶ Iniciar Câmera</button>
             <button class="btn btn-secondary" id="btnPararCam" disabled>⏹ Parar Câmera</button>
+            <select id="selCamera" class="btn btn-secondary btn-sm" style="display: none; padding: 0.5rem; outline: none; background: #0f172a; color: var(--text); border: 1px solid var(--card-border); border-radius: 8px;">
+            </select>
           </div>
         </div>
 
@@ -670,7 +674,7 @@
 
     // Presets de Teste Rápido
     document.getElementById('btnPresetItau').addEventListener('click', () => {
-      document.getElementById('txtLinha').value = '34191.09008 00000.283101 09257.470006 4 96450000012500';
+      document.getElementById('txtLinha').value = '34191.09008 00000.283101 09257.470006 8 16460000012500';
       document.getElementById('txtValorImp').value = '125.00';
       document.getElementById('txtVencImp').value = '2026-11-30';
       document.getElementById('txtBeneficiario').value = 'EMPRESA TESTE ITAU';
@@ -878,30 +882,117 @@
     // Inicializa com Itaú
     document.getElementById('btnPresetItau').click();
 
-    // ─── SCANNER NATIVO VIA BARCODE DETECTOR ───────────────────────────────
+    // ─── VERIFICAÇÃO AUTOMÁTICA DE CÂMERA NO DISPOSITIVO ───────────────────
     let videoStream = null;
     let detectorTimer = null;
+    let temCameraDisponivel = false;
+    let listaCameras = [];
+
     const video = document.getElementById('videoScanner');
     const camPlaceholder = document.getElementById('camPlaceholder');
+    const camStatusIcon = document.getElementById('camStatusIcon');
+    const camStatusTitulo = document.getElementById('camStatusTitulo');
+    const camStatusDesc = document.getElementById('camStatusDesc');
+    const btnIniciarCam = document.getElementById('btnIniciarCam');
+    const btnPararCam = document.getElementById('btnPararCam');
+    const selCamera = document.getElementById('selCamera');
+    const scannerOverlay = document.getElementById('scannerOverlay');
 
-    document.getElementById('btnIniciarCam').addEventListener('click', async () => {
+    async function verificarDisponibilidadeCamera() {
+      // 1. Verifica se a API de mídia existe no navegador
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        temCameraDisponivel = false;
+        atualizarStatusSemCamera('Navegador Incompatível', 'Seu navegador não oferece suporte à captura de vídeo via câmera. Utilize a aba "Foto / PDF" ou digite a linha digitável.');
+        return;
+      }
+
       try {
-        videoStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment' }
-        });
-        video.srcObject = videoStream;
-        await video.play();
-        camPlaceholder.style.display = 'none';
-        document.getElementById('btnIniciarCam').disabled = true;
-        document.getElementById('btnPararCam').disabled = false;
+        // 2. Lista os dispositivos de entrada de mídia
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        listaCameras = devices.filter(d => d.kind === 'videoinput');
 
-        iniciarLeituraFrames();
+        if (listaCameras.length === 0) {
+          // Em alguns navegadores, labels só aparecem após o primeiro getUserMedia
+          // Testamos um prompt rápido ou tratamos como sem câmera
+          temCameraDisponivel = false;
+          atualizarStatusSemCamera('Nenhuma Câmera Detectada', 'Este computador ou dispositivo não possui nenhuma câmera de vídeo ou webcam conectada.');
+        } else {
+          temCameraDisponivel = true;
+          atualizarStatusComCamera(listaCameras);
+        }
       } catch (err) {
-        alert('Não foi possível acessar a câmera: ' + err.message);
+        // Se der erro ao enumerar dispositivos
+        temCameraDisponivel = false;
+        atualizarStatusSemCamera('Câmera Não Acessível', `Não foi possível detectar câmeras neste dispositivo: ${err.message}`);
+      }
+    }
+
+    function atualizarStatusSemCamera(titulo, desc) {
+      camStatusIcon.textContent = '📷🚫';
+      camStatusTitulo.textContent = titulo;
+      camStatusTitulo.style.color = '#f87171';
+      camStatusDesc.innerHTML = `${desc}<br><br><button class="btn btn-primary btn-sm" onclick="document.querySelector('[data-tab=\\'tab-arquivo\\']').click()">📸 Enviar Foto ou PDF</button>`;
+      btnIniciarCam.disabled = true;
+      btnIniciarCam.style.opacity = '0.5';
+      btnIniciarCam.title = 'Nenhuma câmera detectada neste dispositivo.';
+      selCamera.style.display = 'none';
+
+      // Atualiza o botão da aba
+      const tabCamBtn = document.querySelector('[data-tab="tab-camera"]');
+      if (tabCamBtn) {
+        tabCamBtn.innerHTML = '📷 Câmera <span style="font-size:0.65rem;color:#f87171;margin-left:2px;">(Indisponível)</span>';
+      }
+    }
+
+    function atualizarStatusComCamera(cams) {
+      camStatusIcon.textContent = '📷';
+      camStatusTitulo.textContent = `Câmera Pronta (${cams.length} encontrada${cams.length > 1 ? 's' : ''})`;
+      camStatusTitulo.style.color = '#34d399';
+      camStatusDesc.textContent = 'Posicione o código de barras ou QR Code Pix na área de mira vermelha para leitura automática.';
+      btnIniciarCam.disabled = false;
+      btnIniciarCam.style.opacity = '1';
+      btnIniciarCam.title = '';
+
+      if (cams.length > 1) {
+        selCamera.style.display = 'inline-block';
+        selCamera.innerHTML = cams.map((c, i) => `<option value="${c.deviceId}">${c.label || `Câmera ${i + 1}`}</option>`).join('');
+      } else {
+        selCamera.style.display = 'none';
+      }
+    }
+
+    // Executa verificação inicial ao carregar a página
+    verificarDisponibilidadeCamera();
+
+    // Re-checa quando o usuário clica na aba da câmera
+    document.querySelector('[data-tab="tab-camera"]').addEventListener('click', () => {
+      if (!videoStream) {
+        verificarDisponibilidadeCamera();
       }
     });
 
-    document.getElementById('btnPararCam').addEventListener('click', pararCamera);
+    btnIniciarCam.addEventListener('click', async () => {
+      try {
+        const constraints = {
+          video: selCamera.value ? { deviceId: { exact: selCamera.value } } : { facingMode: 'environment' }
+        };
+        videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = videoStream;
+        await video.play();
+        camPlaceholder.style.display = 'none';
+        scannerOverlay.style.display = 'flex';
+        btnIniciarCam.disabled = true;
+        btnPararCam.disabled = false;
+
+        iniciarLeituraFrames();
+      } catch (err) {
+        camPlaceholder.style.display = 'block';
+        scannerOverlay.style.display = 'none';
+        atualizarStatusSemCamera('Permissão Negada ou Câmera Ocupada', `Erro ao iniciar vídeo: ${err.message}. Verifique as permissões de câmera do seu navegador.`);
+      }
+    });
+
+    btnPararCam.addEventListener('click', pararCamera);
 
     function pararCamera() {
       if (videoStream) {
@@ -912,9 +1003,10 @@
         clearInterval(detectorTimer);
         detectorTimer = null;
       }
+      scannerOverlay.style.display = 'none';
       camPlaceholder.style.display = 'block';
-      document.getElementById('btnIniciarCam').disabled = false;
-      document.getElementById('btnPararCam').disabled = true;
+      btnIniciarCam.disabled = !temCameraDisponivel;
+      btnPararCam.disabled = true;
     }
 
     function iniciarLeituraFrames() {

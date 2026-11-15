@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR" data-theme="dark">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Manrope:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=3.0.0" />
+  <link rel="stylesheet" href="styles.css?v=4.0.0" />
   <script>
     (function() {
       const savedTheme = localStorage.getItem('ponte.theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
@@ -150,7 +150,7 @@
       border: 1px solid rgba(245, 158, 11, 0.3);
     }
     .barcode-svg-wrap {
-      background: var(--paper-elevated, #162032);
+      background: #ffffff;
       padding: 16px 20px;
       border-radius: var(--radius-md);
       border: 1px solid var(--line);
@@ -159,16 +159,8 @@
       align-items: center;
       justify-content: center;
       margin: 16px 0;
-      color: var(--ink);
+      color: #000000;
       box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-    }
-    :root[data-theme="dark"] .barcode-svg-wrap svg rect[fill="#000000"],
-    :root[data-theme="dark"] .barcode-svg-wrap svg rect[fill="#000"],
-    :root[data-theme="dark"] .barcode-svg-wrap svg rect[fill="black"] {
-      fill: #f8fafc !important;
-    }
-    :root[data-theme="dark"] #barcode-number-display {
-      color: var(--mint, #a3e635) !important;
     }
     .specs-table {
       width: 100%;
@@ -195,377 +187,42 @@
       font-weight: 700;
       text-align: right;
     }
-
-    /* Compactação de Pílulas e Chips para evitar botões gigantes */
-    .sample-boleto, .btn-sm-action {
-      min-height: 28px !important;
-      height: 28px !important;
-      line-height: 26px !important;
-      padding: 0 10px !important;
-      font-size: 11px !important;
-      border-radius: 6px !important;
-    }
-
-    /* Terminal Console: contraste garantido em qualquer tema */
-    .console-json, #console-output {
-      color: #f8fafc !important;
-      font-family: 'JetBrains Mono', monospace !important;
-    }
-
-    html, body {
-      overflow-x: hidden !important;
-      max-width: 100vw !important;
-    }
-
-    /* ── Otimizações Responsivas Mobile & Telas Estreitas (<850px) ── */
-    @media (max-width: 850px) {
-      body {
-        padding-bottom: 74px !important;
-      }
-      .mobile-bottom-nav {
-        display: grid !important;
-      }
-      html, body, .app-shell, .main-area, .content-wrap {
-        overflow-x: hidden !important;
-        width: 100% !important;
-        max-width: 100vw !important;
-        box-sizing: border-box !important;
-      }
-      .app-shell {
-        grid-template-columns: 1fr !important;
-      }
-      .sidebar {
-        display: none !important;
-      }
-      .topbar {
-        height: auto !important;
-        min-height: 48px !important;
-        padding: 6px 12px !important;
-        gap: 6px !important;
-      }
-      .breadcrumb {
-        font-size: 11px !important;
-      }
-      .breadcrumb span:not(:last-child), .breadcrumb a {
-        display: none !important;
-      }
-      .environment {
-        display: none !important;
-      }
-      .topbar-actions {
-        margin-left: auto !important;
-        gap: 6px !important;
-      }
-      .primary-button.accent {
-        height: 32px !important;
-        min-height: 32px !important;
-        padding: 0 10px !important;
-        font-size: 11px !important;
-      }
-      .theme-toggle-btn {
-        width: 32px !important;
-        height: 32px !important;
-      }
-      .content-wrap {
-        padding: 12px 12px 36px !important;
-      }
-      .page-heading {
-        margin-bottom: 12px !important;
-      }
-      .page-heading h1 {
-        font-size: 1.25rem !important;
-        line-height: 1.25 !important;
-        margin-bottom: 4px !important;
-      }
-      .page-heading .eyebrow {
-        font-size: 9.5px !important;
-        margin-bottom: 2px !important;
-      }
-      .page-subtitle {
-        font-size: 11.5px !important;
-        line-height: 1.4 !important;
-        margin-bottom: 10px !important;
-      }
-      .billing-models-grid {
-        display: flex !important;
-        overflow-x: auto !important;
-        scrollbar-width: none !important;
-        -webkit-overflow-scrolling: touch !important;
-        gap: 6px !important;
-        margin-bottom: 12px !important;
-        padding-bottom: 2px !important;
-      }
-      .billing-models-grid::-webkit-scrollbar {
-        display: none !important;
-      }
-      .model-card {
-        flex: 1 0 auto !important;
-        padding: 6px 10px !important;
-        border-radius: var(--radius-md) !important;
-        display: flex !important;
-        align-items: center !important;
-        gap: 6px !important;
-      }
-      .model-card .model-badge {
-        font-size: 9px !important;
-        padding: 2px 5px !important;
-        margin-bottom: 0 !important;
-        white-space: nowrap !important;
-      }
-      .model-card div[style*="font-size:20px"] {
-        font-size: 11.5px !important;
-        font-weight: 700 !important;
-        margin-bottom: 0 !important;
-        white-space: nowrap !important;
-      }
-      .model-card p {
-        display: none !important;
-      }
-      .tab-nav-bar {
-        display: flex !important;
-        flex-wrap: nowrap !important;
-        overflow-x: auto !important;
-        scrollbar-width: none !important;
-        -webkit-overflow-scrolling: touch !important;
-        gap: 6px !important;
-        padding: 4px !important;
-        margin-bottom: 14px !important;
-        border-radius: var(--radius-lg) !important;
-      }
-      .tab-nav-bar::-webkit-scrollbar {
-        display: none !important;
-      }
-      .tab-nav-btn {
-        flex: 0 0 auto !important;
-        height: 32px !important;
-        min-height: 32px !important;
-        padding: 0 12px !important;
-        font-size: 11.5px !important;
-        white-space: nowrap !important;
-        border-radius: var(--radius-md) !important;
-        gap: 5px !important;
-        text-align: center !important;
-      }
-      .tab-nav-btn svg, .tab-nav-btn .lucide {
-        width: 14px !important;
-        height: 14px !important;
-      }
-      .card-dashboard {
-        padding: 12px !important;
-        border-radius: var(--radius-lg) !important;
-      }
-      .card-dashboard div[style*="font-size:14px"] {
-        font-size: 12.5px !important;
-      }
-      .card-dashboard p[style*="font-size:12.5px"] {
-        font-size: 11px !important;
-        margin-bottom: 10px !important;
-      }
-      input[type="text"], input[type="number"], select {
-        height: 36px !important;
-        min-height: 36px !important;
-        font-size: 12.5px !important;
-        padding: 0 10px !important;
-      }
-      .primary-button, .secondary-button, #btn-exec-boleto, #btn-gerar-valido {
-        height: 36px !important;
-        min-height: 36px !important;
-        padding: 0 12px !important;
-        font-size: 11.5px !important;
-      }
-      .sample-boleto {
-        min-height: 26px !important;
-        height: 26px !important;
-        padding: 0 7px !important;
-        font-size: 10.5px !important;
-      }
-      .barcode-svg-wrap {
-        padding: 10px 6px !important;
-        margin: 10px 0 !important;
-      }
-      .playground-split {
-        margin-top: 12px !important;
-        gap: 12px !important;
-        width: 100% !important;
-        box-sizing: border-box !important;
-      }
-      .playground-left, .playground-right {
-        width: 100% !important;
-        min-width: 0 !important;
-        box-sizing: border-box !important;
-        overflow-x: hidden !important;
-      }
-      .specs-table td {
-        padding: 7px 9px !important;
-        font-size: 11px !important;
-      }
-      .specs-table td.label-col {
-        font-size: 10px !important;
-        width: 38% !important;
-      }
-      .terminal-window {
-        border-radius: var(--radius-lg) !important;
-        background: #091311 !important;
-      }
-      .terminal-topbar {
-        padding: 7px 10px !important;
-      }
-      .snippet-tab {
-        padding: 2px 6px !important;
-        font-size: 10px !important;
-      }
-      .terminal-body {
-        padding: 8px 10px !important;
-        font-size: 11px !important;
-      }
-      .playground-console {
-        padding: 12px !important;
-        min-height: 200px !important;
-        max-height: 380px !important;
-      }
-      .console-json, #console-output {
-        color: #f8fafc !important;
-        font-size: 11px !important;
-      }
-    }
-        width: 100% !important;
-        box-sizing: border-box !important;
-      }
-      .playground-left, .playground-right {
-        width: 100% !important;
-        min-width: 0 !important;
-        box-sizing: border-box !important;
-        overflow-x: hidden !important;
-      }
-      .specs-table td {
-        padding: 8px 10px !important;
-        font-size: 11.5px !important;
-      }
-      .specs-table td.label-col {
-        font-size: 10.5px !important;
-      }
-      .terminal-window {
-        border-radius: var(--radius-lg) !important;
-      }
-      .terminal-topbar {
-        padding: 8px 12px !important;
-      }
-      .snippet-tab {
-        padding: 3px 6px !important;
-        font-size: 10px !important;
-      }
-      .terminal-body {
-        padding: 10px 12px !important;
-        font-size: 11px !important;
-      }
-    }
-  
-.mobile-hamburger-btn {
-  display: none;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-md);
-  background: var(--paper);
-  border: 1px solid var(--line);
-  color: var(--ink);
-  place-items: center;
-  cursor: pointer;
-  margin-right: 8px;
-  flex-shrink: 0;
-  transition: all 0.15s ease;
-}
-.mobile-hamburger-btn:hover {
-  background: var(--paper-elevated);
-}
-.sidebar-drawer-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 98;
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  transition: opacity 0.2s ease;
-}
-.sidebar-drawer-backdrop[hidden] {
-  display: none !important;
-}
-.sidebar-drawer-close {
-  display: none;
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #fff;
-  place-items: center;
-  cursor: pointer;
-}
-@media (max-width: 850px) {
-  .mobile-hamburger-btn {
-    display: grid !important;
-  }
-  .sidebar-drawer-close {
-    display: grid !important;
-  }
-  .sidebar {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    bottom: 0 !important;
-    width: 280px !important;
-    max-width: 85vw !important;
-    z-index: 100 !important;
-    transform: translateX(-100%);
-    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
-    display: flex !important;
-    box-shadow: 0 25px 60px -10px rgba(0,0,0,0.85) !important;
-  }
-  .sidebar.is-open {
-    transform: translateX(0) !important;
-  }
-}
-
   </style>
 </head>
 <body>
   <div class="sidebar-drawer-backdrop" id="sidebar-drawer-backdrop" hidden></div>
   <div class="app-shell">
     <!-- Sidebar Oficial do Ecossistema Ponte / OZPro -->
-    <aside class="sidebar"><button class="sidebar-drawer-close" id="sidebar-drawer-close" aria-label="Fechar menu"><i data-lucide="x"></i></button> aria-label="Navegação principal">
+    <aside class="sidebar" aria-label="Navegação principal">
+      <button class="sidebar-drawer-close" id="sidebar-drawer-close" aria-label="Fechar menu lateral"><i data-lucide="x"></i></button>
       <a class="brand" href="#auditor" aria-label="Ponte API, BoletoValidator Pro">
         <img src="brand/ozpro-mark.svg" alt="Ponte API Logo" style="width:38px;height:38px;border-radius:10px;object-fit:contain;background:var(--mint);padding:4px;box-shadow:0 4px 12px rgba(163,230,53,0.35);" />
         <span><strong>ponte</strong><small>BOLETOVALIDATOR · OZPRO</small></span>
       </a>
 
       <nav class="primary-nav" id="primary-nav">
-        <div class="nav-section-label">FUNCIONALIDADES BANCÁRIAS</div>
+        <div class="nav-section-label">FUNCIONALIDADES</div>
         <button class="nav-link is-active" data-view="auditor">
           <i data-lucide="shield-check"></i> <span>Auditor & Validador</span>
-          <span class="nav-badge" style="background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3);">FEBRABAN</span>
         </button>
         <button class="nav-link" data-view="gerador">
           <i data-lucide="barcode"></i> <span>Gerador de Boletos</span>
-          <span class="nav-badge blue">ITF-25 SVG</span>
         </button>
         <button class="nav-link" data-view="triangulacao">
-          <i data-lucide="shuffle"></i> <span>Triangulação Pix</span>
-          <span class="nav-badge purple">QR Code</span>
+          <i data-lucide="shuffle"></i> <span>Triangulação Pix x Boleto</span>
         </button>
         <button class="nav-link" data-view="docs">
           <i data-lucide="book-open"></i> <span>Documentação REST</span>
-          <span class="nav-badge" style="background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.3);">RFC 6750</span>
         </button>
 
         <div class="nav-section-label">ECOSSISTEMA PONTE</div>
-        <a class="nav-link" href="https://ponte-marketplace.maputo2.workers.dev/#catalogo" target="_blank" rel="noopener">
+        <a class="nav-link" href="https://ponte-marketplace.maputo2.workers.dev" target="_blank" rel="noopener">
           <i data-lucide="layout-grid"></i> <span>API Marketplace</span>
-          <span class="nav-badge" style="background:rgba(163,230,53,0.15);color:#a3e635;border:1px solid rgba(163,230,53,0.3);">20 APIs</span>
+          <span class="nav-ext"><i data-lucide="arrow-up-right"></i></span>
         </a>
         <a class="nav-link" href="https://github.com/clepta2/boletovalidator-pro" target="_blank" rel="noopener">
-          <i data-lucide="github"></i> <span>GitHub do Projeto</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"></path><path d="M9 18c-4.51 2-5-2-7-2"></path></svg>
+          <span>GitHub do Projeto</span>
           <span class="nav-ext"><i data-lucide="arrow-up-right"></i></span>
         </a>
       </nav>
@@ -589,7 +246,8 @@
     <!-- Área Principal -->
     <main class="main-area">
       <!-- Topbar Oficial -->
-      <header class="topbar"><button class="mobile-hamburger-btn" id="mobile-hamburger-btn" aria-label="Abrir menu"><i data-lucide="menu"></i></button>
+      <header class="topbar">
+        <button class="mobile-hamburger-btn" id="mobile-hamburger-btn" aria-label="Abrir menu lateral"><i data-lucide="menu"></i></button>
         <div class="breadcrumb">
           <span>Workspace</span>
           <i data-lucide="chevron-right"></i>
@@ -715,7 +373,7 @@
 
                 <!-- Tabela de Raio-X do Boleto -->
                 <div style="border:1px solid var(--line);border-radius:var(--radius-lg);overflow:hidden;background:var(--paper);">
-                  <div style="padding:12px 16px;background:var(--paper-elevated, #162032);border-bottom:1px solid var(--line);font-size:13px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:7px;">
+                  <div style="padding:12px 16px;background:var(--paper-elevated,#f8fafc);border-bottom:1px solid var(--line);font-size:13px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:7px;">
                     <i data-lucide="clipboard-list"></i>
                     <span>Raio-X dos Dados Bancários</span>
                   </div>
@@ -835,33 +493,53 @@
     </main>
   </div>
 
-  <!-- Barra de Navegação Inferior Mobile (Bottom Navigation) -->
-  <nav class="mobile-bottom-nav" id="mobile-bottom-nav" aria-label="Navegação mobile">
-    <button class="mobile-nav-item is-active" data-view="auditor">
-      <i data-lucide="shield-check"></i>
-      <span>Auditor</span>
-    </button>
-    <button class="mobile-nav-item" data-view="gerador">
-      <i data-lucide="barcode"></i>
-      <span>Gerador</span>
-    </button>
-    <button class="mobile-nav-item" data-view="triangulacao">
-      <i data-lucide="shuffle"></i>
-      <span>Pix Híbrido</span>
-    </button>
-    <button class="mobile-nav-item" data-view="docs">
-      <i data-lucide="book-open"></i>
-      <span>Docs</span>
-    </button>
-    <a href="https://ponte-marketplace.maputo2.workers.dev/#catalogo" class="mobile-nav-item" style="text-decoration:none;">
-      <i data-lucide="layout-grid"></i>
-      <span>Marketplace</span>
-    </a>
-  </nav>
-
-
   <!-- Script da Aplicação e Integração -->
   <script type="module">
+
+    // Controle do Menu Lateral Mobile (Drawer)
+    function setupMobileNav() {
+      const drawerBtn = document.getElementById('mobile-hamburger-btn');
+      const drawerClose = document.getElementById('sidebar-drawer-close');
+      const drawerBackdrop = document.getElementById('sidebar-drawer-backdrop');
+      const sidebarEl = document.querySelector('.sidebar');
+
+      function openDrawer() {
+        if (sidebarEl) sidebarEl.classList.add('is-open');
+        if (drawerBackdrop) drawerBackdrop.hidden = false;
+      }
+      function closeDrawer() {
+        if (sidebarEl) sidebarEl.classList.remove('is-open');
+        if (drawerBackdrop) drawerBackdrop.hidden = true;
+      }
+
+      drawerBtn?.addEventListener('click', openDrawer);
+      drawerClose?.addEventListener('click', closeDrawer);
+      drawerBackdrop?.addEventListener('click', closeDrawer);
+
+      // Sincronização de Abas (Desktop, Sidebar e Mobile Bottom Nav)
+      const allTabBtns = document.querySelectorAll('.tab-nav-btn, .primary-nav .nav-link[data-view], .mobile-bottom-nav .mobile-nav-item[data-tab]');
+      allTabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tabKey = btn.dataset.tab || btn.dataset.view;
+          if (!tabKey) return;
+          document.querySelectorAll('.tab-nav-btn').forEach(b => b.classList.toggle('is-active', b.dataset.tab === tabKey));
+          document.querySelectorAll('.primary-nav .nav-link[data-view]').forEach(b => b.classList.toggle('is-active', b.dataset.view === tabKey));
+          document.querySelectorAll('.mobile-bottom-nav .mobile-nav-item[data-tab]').forEach(b => b.classList.toggle('is-active', b.dataset.tab === tabKey));
+          document.querySelectorAll('.tab-pane').forEach(p => p.style.display = 'none');
+          const target = document.getElementById('section-' + tabKey);
+          if (target) target.style.display = 'block';
+          closeDrawer();
+          if (typeof updateSnippet === 'function') updateSnippet();
+          if (window.lucide) window.lucide.createIcons();
+        });
+      });
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', setupMobileNav);
+    } else {
+      setupMobileNav();
+    }
+
     import { BoletoValidatorPro } from './boletovalidator-pro.js';
 
     // Tema Claro / Escuro
@@ -882,7 +560,6 @@
         const tabKey = btn.dataset.tab || btn.dataset.view;
         if (!tabKey) return;
         document.querySelectorAll('.tab-nav-btn').forEach(b => b.classList.toggle('is-active', b.dataset.tab === tabKey));
-        document.querySelectorAll('.mobile-bottom-nav .mobile-nav-item').forEach(b => b.classList.toggle('is-active', b.dataset.view === tabKey));
         document.querySelectorAll('.primary-nav .nav-link[data-view]').forEach(b => b.classList.toggle('is-active', b.dataset.view === tabKey));
         document.querySelectorAll('.tab-pane').forEach(p => p.style.display = 'none');
         const target = document.getElementById('section-' + tabKey);
@@ -1025,27 +702,26 @@ print_r(json_decode($res, true));`;
       if (window.lucide) window.lucide.createIcons();
       executarAuditoria();
     }, 100);
-  
-    // Controle da Gaveta Lateral Móvel (Sidebar Drawer)
-    const hamBtn = document.getElementById('mobile-hamburger-btn');
-    const closeBtn = document.getElementById('sidebar-drawer-close');
-    const drawerBackdrop = document.getElementById('sidebar-drawer-backdrop');
-    const sidebar = document.querySelector('.sidebar');
-
-    function toggleDrawer(open) {
-      if (!sidebar || !drawerBackdrop) return;
-      sidebar.classList.toggle('is-open', open);
-      drawerBackdrop.hidden = !open;
-      if (open && window.lucide) window.lucide.createIcons();
-    }
-
-    if (hamBtn) hamBtn.addEventListener('click', () => toggleDrawer(true));
-    if (closeBtn) closeBtn.addEventListener('click', () => toggleDrawer(false));
-    if (drawerBackdrop) drawerBackdrop.addEventListener('click', () => toggleDrawer(false));
-    document.querySelectorAll('.sidebar .nav-link').forEach(link => {
-      link.addEventListener('click', () => toggleDrawer(false));
-    });
-  
   </script>
+
+    <!-- Barra de Navegação Inferior Mobile Oficial -->
+    <nav class="mobile-bottom-nav" id="mobile-bottom-nav" aria-label="Navegação mobile">
+      <button class="mobile-nav-item is-active" data-tab="auditor">
+        <i data-lucide="shield-check"></i><span>Auditor</span>
+      </button>
+      <button class="mobile-nav-item " data-tab="gerador">
+        <i data-lucide="barcode"></i><span>Gerador</span>
+      </button>
+      <button class="mobile-nav-item " data-tab="triangulacao">
+        <i data-lucide="shuffle"></i><span>Triangulação</span>
+      </button>
+      <button class="mobile-nav-item " data-tab="docs">
+        <i data-lucide="book-open"></i><span>Docs</span>
+      </button>
+      <a class="mobile-nav-item" href="https://ponte-marketplace.maputo2.workers.dev" target="_blank" rel="noopener">
+        <i data-lucide="layout-grid"></i><span>Market</span>
+      </a>
+    </nav>
+
 </body>
 </html>

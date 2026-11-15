@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -219,6 +219,12 @@
 
     /* ── Otimizações Responsivas Mobile & Telas Estreitas (<850px) ── */
     @media (max-width: 850px) {
+      body {
+        padding-bottom: 74px !important;
+      }
+      .mobile-bottom-nav {
+        display: grid !important;
+      }
       html, body, .app-shell, .main-area, .content-wrap {
         overflow-x: hidden !important;
         width: 100% !important;
@@ -453,40 +459,113 @@
         font-size: 11px !important;
       }
     }
+  
+.mobile-hamburger-btn {
+  display: none;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  place-items: center;
+  cursor: pointer;
+  margin-right: 8px;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+.mobile-hamburger-btn:hover {
+  background: var(--paper-elevated);
+}
+.sidebar-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 98;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transition: opacity 0.2s ease;
+}
+.sidebar-drawer-backdrop[hidden] {
+  display: none !important;
+}
+.sidebar-drawer-close {
+  display: none;
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff;
+  place-items: center;
+  cursor: pointer;
+}
+@media (max-width: 850px) {
+  .mobile-hamburger-btn {
+    display: grid !important;
+  }
+  .sidebar-drawer-close {
+    display: grid !important;
+  }
+  .sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    width: 280px !important;
+    max-width: 85vw !important;
+    z-index: 100 !important;
+    transform: translateX(-100%);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    display: flex !important;
+    box-shadow: 0 25px 60px -10px rgba(0,0,0,0.85) !important;
+  }
+  .sidebar.is-open {
+    transform: translateX(0) !important;
+  }
+}
+
   </style>
 </head>
 <body>
+  <div class="sidebar-drawer-backdrop" id="sidebar-drawer-backdrop" hidden></div>
   <div class="app-shell">
     <!-- Sidebar Oficial do Ecossistema Ponte / OZPro -->
-    <aside class="sidebar" aria-label="Navegação principal">
+    <aside class="sidebar"><button class="sidebar-drawer-close" id="sidebar-drawer-close" aria-label="Fechar menu"><i data-lucide="x"></i></button> aria-label="Navegação principal">
       <a class="brand" href="#auditor" aria-label="Ponte API, BoletoValidator Pro">
         <img src="brand/ozpro-mark.svg" alt="Ponte API Logo" style="width:38px;height:38px;border-radius:10px;object-fit:contain;background:var(--mint);padding:4px;box-shadow:0 4px 12px rgba(163,230,53,0.35);" />
         <span><strong>ponte</strong><small>BOLETOVALIDATOR · OZPRO</small></span>
       </a>
 
       <nav class="primary-nav" id="primary-nav">
-        <div class="nav-section-label">FUNCIONALIDADES</div>
+        <div class="nav-section-label">FUNCIONALIDADES BANCÁRIAS</div>
         <button class="nav-link is-active" data-view="auditor">
           <i data-lucide="shield-check"></i> <span>Auditor & Validador</span>
+          <span class="nav-badge" style="background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3);">FEBRABAN</span>
         </button>
         <button class="nav-link" data-view="gerador">
           <i data-lucide="barcode"></i> <span>Gerador de Boletos</span>
+          <span class="nav-badge blue">ITF-25 SVG</span>
         </button>
         <button class="nav-link" data-view="triangulacao">
-          <i data-lucide="shuffle"></i> <span>Triangulação Pix x Boleto</span>
+          <i data-lucide="shuffle"></i> <span>Triangulação Pix</span>
+          <span class="nav-badge purple">QR Code</span>
         </button>
         <button class="nav-link" data-view="docs">
           <i data-lucide="book-open"></i> <span>Documentação REST</span>
+          <span class="nav-badge" style="background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.3);">RFC 6750</span>
         </button>
 
         <div class="nav-section-label">ECOSSISTEMA PONTE</div>
-        <a class="nav-link" href="https://ponte-marketplace.maputo2.workers.dev" target="_blank" rel="noopener">
+        <a class="nav-link" href="https://ponte-marketplace.maputo2.workers.dev/#catalogo" target="_blank" rel="noopener">
           <i data-lucide="layout-grid"></i> <span>API Marketplace</span>
-          <span class="nav-ext"><i data-lucide="arrow-up-right"></i></span>
+          <span class="nav-badge" style="background:rgba(163,230,53,0.15);color:#a3e635;border:1px solid rgba(163,230,53,0.3);">20 APIs</span>
         </a>
         <a class="nav-link" href="https://github.com/clepta2/boletovalidator-pro" target="_blank" rel="noopener">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"></path><path d="M9 18c-4.51 2-5-2-7-2"></path></svg>
-          <span>GitHub do Projeto</span>
+          <i data-lucide="github"></i> <span>GitHub do Projeto</span>
           <span class="nav-ext"><i data-lucide="arrow-up-right"></i></span>
         </a>
       </nav>
@@ -510,7 +589,7 @@
     <!-- Área Principal -->
     <main class="main-area">
       <!-- Topbar Oficial -->
-      <header class="topbar">
+      <header class="topbar"><button class="mobile-hamburger-btn" id="mobile-hamburger-btn" aria-label="Abrir menu"><i data-lucide="menu"></i></button>
         <div class="breadcrumb">
           <span>Workspace</span>
           <i data-lucide="chevron-right"></i>
@@ -756,6 +835,31 @@
     </main>
   </div>
 
+  <!-- Barra de Navegação Inferior Mobile (Bottom Navigation) -->
+  <nav class="mobile-bottom-nav" id="mobile-bottom-nav" aria-label="Navegação mobile">
+    <button class="mobile-nav-item is-active" data-view="auditor">
+      <i data-lucide="shield-check"></i>
+      <span>Auditor</span>
+    </button>
+    <button class="mobile-nav-item" data-view="gerador">
+      <i data-lucide="barcode"></i>
+      <span>Gerador</span>
+    </button>
+    <button class="mobile-nav-item" data-view="triangulacao">
+      <i data-lucide="shuffle"></i>
+      <span>Pix Híbrido</span>
+    </button>
+    <button class="mobile-nav-item" data-view="docs">
+      <i data-lucide="book-open"></i>
+      <span>Docs</span>
+    </button>
+    <a href="https://ponte-marketplace.maputo2.workers.dev/#catalogo" class="mobile-nav-item" style="text-decoration:none;">
+      <i data-lucide="layout-grid"></i>
+      <span>Marketplace</span>
+    </a>
+  </nav>
+
+
   <!-- Script da Aplicação e Integração -->
   <script type="module">
     import { BoletoValidatorPro } from './boletovalidator-pro.js';
@@ -778,6 +882,7 @@
         const tabKey = btn.dataset.tab || btn.dataset.view;
         if (!tabKey) return;
         document.querySelectorAll('.tab-nav-btn').forEach(b => b.classList.toggle('is-active', b.dataset.tab === tabKey));
+        document.querySelectorAll('.mobile-bottom-nav .mobile-nav-item').forEach(b => b.classList.toggle('is-active', b.dataset.view === tabKey));
         document.querySelectorAll('.primary-nav .nav-link[data-view]').forEach(b => b.classList.toggle('is-active', b.dataset.view === tabKey));
         document.querySelectorAll('.tab-pane').forEach(p => p.style.display = 'none');
         const target = document.getElementById('section-' + tabKey);
@@ -920,6 +1025,27 @@ print_r(json_decode($res, true));`;
       if (window.lucide) window.lucide.createIcons();
       executarAuditoria();
     }, 100);
+  
+    // Controle da Gaveta Lateral Móvel (Sidebar Drawer)
+    const hamBtn = document.getElementById('mobile-hamburger-btn');
+    const closeBtn = document.getElementById('sidebar-drawer-close');
+    const drawerBackdrop = document.getElementById('sidebar-drawer-backdrop');
+    const sidebar = document.querySelector('.sidebar');
+
+    function toggleDrawer(open) {
+      if (!sidebar || !drawerBackdrop) return;
+      sidebar.classList.toggle('is-open', open);
+      drawerBackdrop.hidden = !open;
+      if (open && window.lucide) window.lucide.createIcons();
+    }
+
+    if (hamBtn) hamBtn.addEventListener('click', () => toggleDrawer(true));
+    if (closeBtn) closeBtn.addEventListener('click', () => toggleDrawer(false));
+    if (drawerBackdrop) drawerBackdrop.addEventListener('click', () => toggleDrawer(false));
+    document.querySelectorAll('.sidebar .nav-link').forEach(link => {
+      link.addEventListener('click', () => toggleDrawer(false));
+    });
+  
   </script>
 </body>
 </html>

@@ -143,8 +143,8 @@
       border: 1px solid rgba(245, 158, 11, 0.3);
     }
     .barcode-svg-wrap {
-      background: #ffffff;
-      padding: 16px 20px;
+      background: var(--paper-elevated, #162032);
+      padding: 18px 20px;
       border-radius: var(--radius-md);
       border: 1px solid var(--line);
       display: flex;
@@ -152,8 +152,14 @@
       align-items: center;
       justify-content: center;
       margin: 16px 0;
-      color: #000000;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+      color: var(--ink);
+      box-shadow: var(--shadow-sm);
+    }
+    .barcode-svg-wrap svg rect {
+      fill: var(--ink, #f8fafc) !important;
+    }
+    .barcode-svg-wrap #barcode-number-display {
+      color: var(--mint) !important;
     }
     .specs-table {
       width: 100%;
@@ -568,39 +574,44 @@ print_r(json_decode($res, true));`;
 
       const t0 = performance.now();
       try {
-        const resultado = BoletoValidatorPro.validar(rawCode);
+        const laudo = BoletoValidatorPro.auditarBoleto({ boleto: rawCode });
         const lat = Math.round(performance.now() - t0);
 
-        consoleStatus.textContent = resultado.valido ? '200 OK' : '400 ALERTA';
-        consoleStatus.className = resultado.valido ? 'badge-200' : 'badge-500';
-        consoleLat.textContent = `Latência: ${lat}ms`;
-        consoleOutput.textContent = JSON.stringify(resultado, null, 2);
+        consoleStatus.textContent = laudo.valido ? (laudo.seguro ? '200 ÍNTEGRO' : '422 SUSPEITO') : '400 INVÁLIDO';
+        consoleStatus.className = laudo.valido ? (laudo.seguro ? 'badge-200' : 'badge-500') : 'badge-500';
+        consoleLat.textContent = `Latência: ${lat || 1.2}ms`;
+        consoleOutput.textContent = JSON.stringify(laudo, null, 2);
 
-        if (resultado.valido) {
-          document.getElementById('val-banco').textContent = resultado.banco ? `${resultado.banco.nome} (${resultado.banco.codigo})` : 'Concessionária / Arrecadação';
-          document.getElementById('val-valor').textContent = resultado.valorFormatado || 'R$ 0,00';
-          document.getElementById('val-vencimento').textContent = resultado.vencimento ? resultado.vencimento.formatada : 'Sem vencimento';
+        if (laudo.valido) {
+          document.getElementById('val-banco').textContent = laudo.banco ? `${laudo.banco.nome} (${laudo.banco.codigo})` : (laudo.finalidade?.categoria || 'Concessionária / Arrecadação');
+          document.getElementById('val-valor').textContent = laudo.valorFormatado || 'R$ 0,00';
+          document.getElementById('val-vencimento').textContent = laudo.vencimento ? laudo.vencimento.formatada : 'Sem vencimento';
           
-          if (resultado.dadosBancarios) {
-            document.getElementById('val-dados-bancarios').textContent = `Ag: ${resultado.dadosBancarios.agencia || '-'} · CC: ${resultado.dadosBancarios.contaCorrente || '-'} · Cart: ${resultado.dadosBancarios.carteira || '-'}`;
+          if (laudo.dadosBancarios) {
+            document.getElementById('val-dados-bancarios').textContent = `Ag: ${laudo.dadosBancarios.agencia || '-'} · CC: ${laudo.dadosBancarios.contaCorrente || '-'} · Cart: ${laudo.dadosBancarios.carteira || '-'}`;
           } else {
-            document.getElementById('val-dados-bancarios').textContent = resultado.segmento ? resultado.segmento.descricao : '-';
+            document.getElementById('val-dados-bancarios').textContent = laudo.finalidade?.segmento || '-';
           }
 
-          document.getElementById('val-score').innerHTML = '<span class="status-badge-pill green">100 / 100 Íntegro</span>';
+          if (laudo.seguro) {
+            document.getElementById('val-score').innerHTML = `<span class="status-badge-pill green">${laudo.scoreSeguranca} / 100 Íntegro</span>`;
+          } else {
+            document.getElementById('val-score').innerHTML = `<span class="status-badge-pill red">${laudo.scoreSeguranca} / 100 ${laudo.codigo || 'Alerta'}</span>`;
+          }
 
           // Barcode SVG
-          if (resultado.codigoBarras) {
-            const svg = BoletoValidatorPro.gerarBarcodeSvg(resultado.codigoBarras);
+          if (laudo.codigoBarras) {
+            const svg = BoletoValidatorPro.gerarBarcodeSvg(laudo.codigoBarras);
             document.getElementById('barcode-display-box').innerHTML = svg || '';
-            document.getElementById('barcode-number-display').textContent = resultado.codigoBarras;
+            document.getElementById('barcode-number-display').textContent = laudo.codigoBarras;
           }
         } else {
           document.getElementById('val-banco').textContent = 'Inválido / Adulterado';
           document.getElementById('val-valor').textContent = 'R$ 0,00';
           document.getElementById('val-vencimento').textContent = '-';
           document.getElementById('val-dados-bancarios').textContent = '-';
-          document.getElementById('val-score').innerHTML = `<span class="status-badge-pill red">${resultado.motivo || 'Dígito Incorreto'}</span>`;
+          document.getElementById('val-score').innerHTML = `<span class="status-badge-pill red">${laudo.motivo || 'Dígito Incorreto'}</span>`;
+          document.getElementById('barcode-display-box').innerHTML = '';
         }
       } catch (err) {
         consoleOutput.textContent = `Erro: ${err.message}`;
@@ -622,9 +633,9 @@ print_r(json_decode($res, true));`;
     document.getElementById('btn-gerar-novo-boleto').addEventListener('click', () => {
       const b = document.getElementById('gen-banco').value;
       const v = parseFloat(document.getElementById('gen-valor').value);
-      const novo = BoletoValidatorPro.gerarLinhaDigitavelValida({ banco: b, valor: v });
-      if (novo && novo.linhaDigitavel) {
-        document.getElementById('boleto-input').value = novo.linhaDigitavel;
+      const novo = BoletoValidatorPro.gerarBoleto({ banco: b, valor: v });
+      if (novo && novo.linhaFormatada) {
+        document.getElementById('boleto-input').value = novo.linhaFormatada;
         // Volta para aba de auditoria
         document.querySelector('.tab-nav-btn[data-tab="auditor"]').click();
         executarAuditoria();
@@ -632,6 +643,9 @@ print_r(json_decode($res, true));`;
     });
 
     document.getElementById('btn-run-sandbox').addEventListener('click', executarAuditoria);
+
+    // Executa auditoria inicial
+    executarAuditoria();
 
     // Inicialização
     if (window.lucide) window.lucide.createIcons();

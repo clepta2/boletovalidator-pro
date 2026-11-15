@@ -644,3 +644,269 @@ textarea:focus, input[type="text"]:focus, select:focus {
   .topbar { padding: 0 16px; }
   .content-wrap { padding: 16px; }
 }
+
+
+/* ==============================================================================
+   RESPONSIVIDADE DE ALTO N?VEL ? MOBILE & VIEWPORTS ESTREITOS (<1024px)
+   ============================================================================== */
+
+html, body {
+  overflow-x: hidden !important;
+  max-width: 100vw !important;
+  box-sizing: border-box !important;
+}
+
+@media (max-width: 1024px) {
+  .app-shell {
+    grid-template-columns: 1fr !important;
+  }
+  .sidebar {
+    display: none !important;
+  }
+  .topbar {
+    height: auto !important;
+    min-height: 50px !important;
+    padding: 8px 14px !important;
+  }
+  .breadcrumb {
+    font-size: 11px !important;
+  }
+  .breadcrumb span:not(:last-child), .breadcrumb a:not(:last-of-type) {
+    display: none !important;
+  }
+  .environment, .ponte-status-edge {
+    display: none !important;
+  }
+  .topbar-actions {
+    margin-left: auto !important;
+    gap: 6px !important;
+  }
+  .content-wrap {
+    padding: 12px 12px 48px !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    box-sizing: border-box !important;
+  }
+  
+  /* Tipografia Compacta e Elegante */
+  h1, .hero-banner h1, .page-heading h1 {
+    font-size: 1.3rem !important;
+    line-height: 1.25 !important;
+    margin-bottom: 4px !important;
+    letter-spacing: -0.02em !important;
+  }
+  .hero-banner p, .page-subtitle, .subtitle {
+    font-size: 11.5px !important;
+    line-height: 1.45 !important;
+    margin-bottom: 10px !important;
+  }
+  .eyebrow, .page-heading .eyebrow {
+    font-size: 9px !important;
+    padding: 2px 6px !important;
+    margin-bottom: 3px !important;
+  }
+  
+  /* Hero / Banners */
+  .hero-banner, .developer-hero {
+    padding: 16px 14px !important;
+    margin-bottom: 14px !important;
+    border-radius: var(--radius-lg) !important;
+  }
+
+  /* Metric Cards / Feature Cards */
+  .billing-models-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 6px !important;
+    margin-bottom: 14px !important;
+  }
+  .model-card {
+    padding: 8px 10px !important;
+    border-radius: var(--radius-md) !important;
+  }
+  .model-card .model-badge {
+    font-size: 9px !important;
+    padding: 2px 6px !important;
+    margin-bottom: 3px !important;
+  }
+  .model-card div[style*="font-size:20px"] {
+    font-size: 12px !important;
+    margin-bottom: 2px !important;
+  }
+  .model-card p {
+    display: none !important;
+  }
+
+  /* Guias Did?ticos */
+  .guide-card {
+    padding: 12px 14px !important;
+    margin-bottom: 14px !important;
+  }
+  .guide-header strong {
+    font-size: 12px !important;
+  }
+  .guide-steps {
+    grid-template-columns: 1fr !important;
+    gap: 6px !important;
+  }
+  .guide-step {
+    padding: 8px 10px !important;
+  }
+  .guide-step-tag {
+    font-size: 9.5px !important;
+  }
+  .guide-step p {
+    font-size: 11px !important;
+  }
+
+  /* Abas / Tab Nav Bars ? Sem barra de rolagem horizontal */
+  .tab-nav-bar, .tabs-nav, .tabs {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+    padding: 4px !important;
+    margin-bottom: 14px !important;
+    overflow-x: visible !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    background: var(--paper-elevated) !important;
+  }
+  .tab-nav-bar::-webkit-scrollbar, .tabs-nav::-webkit-scrollbar, .tabs::-webkit-scrollbar {
+    display: none !important;
+  }
+  .tab-nav-btn, .tab-btn {
+    flex: 1 1 calc(50% - 4px) !important;
+    min-height: 32px !important;
+    padding: 4px 8px !important;
+    font-size: 11px !important;
+    gap: 5px !important;
+    white-space: normal !important;
+    text-align: center !important;
+    border-radius: var(--radius-sm) !important;
+  }
+  .tab-nav-btn svg, .tab-btn svg, .tab-nav-btn .lucide, .tab-btn .lucide {
+    width: 14px !important;
+    height: 14px !important;
+  }
+
+  /* Pain?is / Split-Screen Grids */
+  .grid-layout, .playground-split {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+    margin-top: 12px !important;
+  }
+  .playground-left, .playground-right {
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+  .card, .card-dashboard {
+    padding: 14px !important;
+    border-radius: var(--radius-lg) !important;
+    gap: 12px !important;
+  }
+  .card-title {
+    font-size: 13.5px !important;
+  }
+
+  /* Formul?rios e Inputs */
+  input[type="text"], input[type="number"], input[type="password"], textarea, select {
+    min-height: 36px !important;
+    height: 36px !important;
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+    border-radius: var(--radius-sm) !important;
+  }
+  textarea {
+    height: auto !important;
+    min-height: 70px !important;
+  }
+  .form-group label {
+    font-size: 11px !important;
+  }
+
+  /* Bot?es Compactos */
+  .btn, .primary-button, .secondary-button {
+    min-height: 32px !important;
+    height: 32px !important;
+    padding: 0 12px !important;
+    font-size: 11.5px !important;
+    border-radius: var(--radius-sm) !important;
+    gap: 5px !important;
+  }
+  .btn-sm, .chip, .cat-btn, .sample-boleto {
+    min-height: 26px !important;
+    height: 26px !important;
+    padding: 0 8px !important;
+    font-size: 10.5px !important;
+    gap: 4px !important;
+  }
+  .chip-group {
+    gap: 4px !important;
+  }
+  .theme-toggle-btn {
+    width: 32px !important;
+    height: 32px !important;
+  }
+  .api-key-box {
+    padding: 2px 6px !important;
+  }
+  .api-key-box input {
+    width: 110px !important;
+    font-size: 10.5px !important;
+  }
+
+  /* Visualizadores de Placas / Boletos / Gr?ficos */
+  .plate-render-frame, .barcode-svg-wrap, .barcode-ticket, .chart-viewport {
+    padding: 10px 6px !important;
+    margin: 10px 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+  .plate-render-svg-wrap, .barcode-svg-wrap svg, .barcode-ticket svg {
+    max-width: 100% !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+  .scanner-view {
+    height: 200px !important;
+  }
+
+  /* Tabelas / Specs */
+  .specs-table td {
+    padding: 6px 8px !important;
+    font-size: 11px !important;
+  }
+  .specs-table td.label-col {
+    font-size: 10px !important;
+  }
+  .kpi-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 6px !important;
+  }
+  .kpi-card {
+    padding: 8px 10px !important;
+  }
+  .kpi-card span {
+    font-size: 9.5px !important;
+  }
+  .kpi-card strong {
+    font-size: 14px !important;
+  }
+
+  /* Terminais & Snippets */
+  .terminal-window, .snippet-panel {
+    border-radius: var(--radius-md) !important;
+  }
+  .terminal-topbar, .snippet-header {
+    padding: 6px 10px !important;
+  }
+  .snippet-tab {
+    padding: 2px 6px !important;
+    font-size: 9.5px !important;
+  }
+  .terminal-body, .snippet-code {
+    padding: 8px 10px !important;
+    font-size: 10.5px !important;
+  }
+}
